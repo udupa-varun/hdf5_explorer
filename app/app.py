@@ -23,7 +23,7 @@ def main():
         # get directory path
         dir_path = st.text_input(
             label="Enter Directory Path:",
-            value="C:\code\python\PDX\data_store",
+            value="./data",
         )
         search_path = Path(dir_path).resolve()
 
@@ -206,12 +206,12 @@ def main():
             with tab_metadata:
                 st.dataframe(meta_df, use_container_width=True)
 
-            # About Tab
-            with tab_about:
-                readme_path = Path(__file__).parent.joinpath("about.md").resolve()
-                with open(readme_path, "r") as f:
-                    readme_data = f.read()
-                st.markdown(readme_data)
-
+        # About Tab
+        # static content, so it can be rendered without submitting dataset form
+        with tab_about:
+            readme_path = Path(__file__).parent.joinpath("about.md").resolve()
+            with open(readme_path, "r") as f:
+                readme_data = f.read()
+            st.markdown(readme_data)
 
 main()
