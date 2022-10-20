@@ -1,5 +1,5 @@
 # PDX H5 Explorer
-A tool to visualize data from HDF5/H5 data files that adhere to the PDX data structure.
+A tool to visualize data from HDF5/H5 data files that adhere to the PDX data structure, built using Streamlit.
 
 ## Screenshots
 |                                              |                                                     |
