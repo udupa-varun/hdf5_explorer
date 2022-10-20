@@ -1,0 +1,13 @@
+
+# Cache
+*__pycache__*
+
+# Virtual environment related
+.venv
+*env/
+
+# IDE related
+.vscode/
+
+# Jupyter related
+*.ipynb*

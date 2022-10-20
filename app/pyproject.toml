@@ -1,0 +1,18 @@
+[tool.black]
+line-length = 79
+target-version = ["py310"]
+extend-exclude = '''
+env
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+py_version = 310
+skip = ["env"]
+
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
