@@ -4,8 +4,8 @@ A tool to visualize data from HDF5/H5 data files that adhere to the PDX data str
 ## Screenshots
 |                                              |                                                     |
 | :------------------------------------------: | :-------------------------------------------------: |
-|  ![](./screenshots/h5explorer_health_1.png)  | ![](./screenshots/h5explorer_features_charts_1.png) |
-| ![](./screenshots/h5explorer_rawdata_1.png)  | ![](./screenshots/h5explorer_features_charts_2.png) |
+|  ![](./screenshots/h5explorer_health_1.png)  |     ![](./screenshots/h5explorer_health_2.png)      |
+| ![](./screenshots/h5explorer_rawdata_1.png)  | ![](./screenshots/h5explorer_features_charts_1.png) |
 | ![](./screenshots/h5explorer_metadata_1.png) | ![](./screenshots/h5explorer_features_table_1.png)  |
 
 
