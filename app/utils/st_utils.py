@@ -145,7 +145,7 @@ def render_health_controls(options: list[str]):
         with col_alarm_val:
             thresh_alarm_val = st.number_input(
                 label="Alarm Threshold",
-                min_value=1.0,
+                min_value=0.0,
                 # max_value=2.0,
                 value=2.0,
                 step=0.5,

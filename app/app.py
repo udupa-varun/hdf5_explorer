@@ -73,7 +73,7 @@ def main():
                 st.session_state["chunk_end_idx"] = chunk_end_idx
                 st.session_state["ready_to_plot"] = True
 
-        st.session_state
+        # st.session_state
 
     # main panel
     with st.container():
@@ -208,7 +208,10 @@ def main():
 
             # About Tab
             with tab_about:
-                st.markdown("Aboutiful")
+                readme_path = Path(__file__).parent.joinpath("about.md").resolve()
+                with open(readme_path, "r") as f:
+                    readme_data = f.read()
+                st.markdown(readme_data)
 
 
 main()

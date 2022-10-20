@@ -2,7 +2,6 @@
 $ErrorActionPreference = "Stop"
 
 Write-Output "Launching app..."
-Write-Output "If a browser window does not automatically open, you can access the app at http://localhost:8083"
 Write-Output "Hit Ctrl+C to quit at any time."
 
 # where was the script called from?
