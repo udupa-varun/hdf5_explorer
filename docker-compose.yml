@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  h5_explorer:
+    build: ./app
+    command: streamlit run app.py
+    volumes:
+      - ./app:/usr/src/app
+      - ./data:/data:ro
+    ports:
+      - 8502:8501

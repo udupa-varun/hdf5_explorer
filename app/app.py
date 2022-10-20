@@ -20,23 +20,24 @@ def main():
         st_utils.reduce_sidebar_height()
 
         st.title("Dataset")
-        # get directory path
-        dir_path = st.text_input(
-            label="Enter Directory Path:",
-            value="./data",
-        )
-        search_path = Path(dir_path).resolve()
+        # # get directory path
+        # dir_path = st.text_input(
+        #     label="Enter Directory Path:",
+        #     value="./data",
+        # )
+        # search_path = Path(dir_path).resolve()
 
-        # stop if the directory does not exist
-        if not search_path.is_dir():
-            st.error("Invalid directory!", icon="🚨")
-            st.stop()
+        # # stop if the directory does not exist
+        # if not search_path.is_dir():
+        #     st.error("Invalid directory!", icon="🚨")
+        #     st.stop()
 
+        search_path = Path("/data")
         # get files from directory path
         file_paths: list[Path] = h5_utils.search_for_datafiles(search_path)
         # stop if there are no H5 files in the directory
         if not file_paths:
-            st.warning("No files found.", icon="⚠️")
+            st.warning("No data files found.", icon="⚠️")
             st.stop()
 
         selected_file_path: list[str] = []
