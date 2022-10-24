@@ -4,6 +4,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from plotly.subplots import make_subplots
+
 # ----------------
 # Generic/Common
 # ----------------
@@ -71,7 +73,11 @@ def update_figure(fig: go.Figure) -> go.Figure:
 # ----------------
 
 
-def plot_health(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
+def plot_health(
+    health_df: pd.DataFrame,
+    contrib_df: pd.DataFrame,
+    datetime_chunk: np.ndarray,
+):
     """Plots one or more charts for the health tab.
 
     :param health_df: dataframe with health values.
@@ -82,7 +88,7 @@ def plot_health(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
     separate_charts = st.session_state["separate_health_charts"]
 
     if separate_charts:
-        plot_health_separate(health_df, datetime_chunk)
+        plot_health_separate(health_df, contrib_df, datetime_chunk)
     else:
         plot_health_single(health_df, datetime_chunk)
 
@@ -96,7 +102,10 @@ def plot_health_single(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
     :type datetime_chunk: np.ndarray
     """
     # init figure
-    fig = go.Figure()
+    # fig = go.Figure()
+    fig = make_subplots(
+        rows=2, row_heights=[3, 1], subplot_titles=["Health", "Contributions"]
+    )
     max_health_val: float = 0.0
     for health_component in health_df:
         # compute trace
@@ -125,7 +134,11 @@ def plot_health_single(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
     st.plotly_chart(fig, use_container_width=True, config=chart_config)
 
 
-def plot_health_separate(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
+def plot_health_separate(
+    health_df: pd.DataFrame,
+    contrib_df: pd.DataFrame,
+    datetime_chunk: np.ndarray,
+):
     """Plots multiple health charts, one for each selected health component.
 
     :param health_df: dataframe with health values.
@@ -135,7 +148,13 @@ def plot_health_separate(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
     """
     for health_component in health_df:
         # init figure
-        fig = go.Figure()
+        # fig = go.Figure()
+        fig = make_subplots(
+            rows=2,
+            row_heights=[3, 1],
+            subplot_titles=["Health", "Contributions"],
+        )
+
         # compute trace
         trace = go.Scatter(
             x=datetime_chunk,
@@ -143,20 +162,49 @@ def plot_health_separate(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
             name=health_component,
         )
         # add trace to figure
-        fig.add_trace(trace)
+        fig.add_trace(trace, row=1, col=1)
+
+        contrib_labels = [
+            c.split("|")[-1]
+            for c in contrib_df.columns.values
+            if health_component in c.split("|")[0]
+        ]
+
+        if contrib_labels:
+            # sort values and labels
+            contrib_values = np.array(contrib_df.iloc[0])
+            contrib_sort_indices = np.argsort(contrib_values)[::-1][
+                : min(len(contrib_values), 6)
+            ]
+            contrib_values = contrib_values[contrib_sort_indices]
+            contrib_labels = [contrib_labels[i] for i in contrib_sort_indices]
+
+            contrib_values_norm = [
+                c / np.sum(contrib_values) * 100 for c in contrib_values
+            ]
+
+            contrib_trace = go.Bar(
+                x=contrib_labels,
+                y=contrib_values_norm,
+                marker_color="blue",
+            )
+            fig.add_trace(contrib_trace, row=2, col=1)
+
         # common updates to figure
         fig = update_figure(fig)
         # specific updates to figure
         fig = plot_threshold_lines(
             fig, max_health_val=max(health_df[health_component])
         )
+
         fig.update_layout(
             title_x=0.5,
             title_text=health_component,
-            xaxis_title="Timestamp",
+            # xaxis_title="Timestamp",
             yaxis_title="Health Index",
             showlegend=False,
         )
+
         # render figure in app
         st.plotly_chart(fig, use_container_width=True, config=chart_config)
 
@@ -186,15 +234,65 @@ def plot_threshold_lines(fig: go.Figure, max_health_val: float) -> go.Figure:
     ylim = max(alarm_val + 0.5, max_health_val)
     # add threshold lines
     fig.add_hline(
-        y=warn_val, line_width=4, line_dash="dash", line_color=warn_color
+        y=warn_val,
+        line_width=4,
+        line_dash="dash",
+        line_color=warn_color,
+        row=1,
+        col=1,
     )
     fig.add_hline(
-        y=alarm_val, line_width=4, line_dash="dash", line_color=alarm_color
+        y=alarm_val,
+        line_width=4,
+        line_dash="dash",
+        line_color=alarm_color,
+        row=1,
+        col=1,
     )
     # apply Y axis limits
-    fig.update_yaxes(range=[0, ylim])
+    fig.update_yaxes(range=[0, ylim], row=1, col=1)
 
     return fig
+
+
+# def plot_threshold_boxes(fig: go.Figure, max_health_val: float) -> go.Figure:
+#     """Plots horizontal lines on the given figure object,
+#     based on the configured threshold controls.
+
+#     :param fig: plotly figure object.
+#     :type fig: go.Figure
+#     :param max_health_val: highest health value on figure, barring thresholds.
+#     :type max_health_val: float
+#     :return: updated figure object
+#     :rtype: go.Figure
+#     """
+#     # get threshold values
+#     warn_val = st.session_state["health_warn_val"]
+#     alarm_val = st.session_state["health_alarm_val"]
+#     # check if threshold values are playing nice
+#     if warn_val >= alarm_val:
+#         st.error("Warning Threshold must be less than Alarm Threshold!")
+#         st.stop()
+#     # get threshold colors
+#     warn_color = st.session_state["health_warn_color"]
+#     alarm_color = st.session_state["health_alarm_color"]
+#     # compute Y Axis upper limit
+#     ylim = max(alarm_val + 0.5, max_health_val)
+#     # add threshold boxes
+#     fig.add_hrect(
+#         y0=warn_val,
+#         y1=alarm_val,
+#         line_width=0,
+#         fillcolor=warn_color,
+#         opacity=0.2,
+#     )
+#     fig.add_hrect(
+#         y0=alarm_val, y1=ylim, line_width=0, fillcolor=alarm_color, opacity=0.2
+#     )
+#     # apply Y axis limits
+#     fig.update_yaxes(range=[0, ylim])
+
+#     return fig
 
 
 # ----------------

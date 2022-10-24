@@ -236,12 +236,25 @@ def update_main_panel():
 
             # prepare dataframe
             health_df = pd.DataFrame()
+            contrib_df = pd.DataFrame()
             for health_component in st.session_state["health_components"]:
                 health_df[health_component] = health_group[health_component][
                     "health_values"
                 ][chunk_begin_idx:chunk_end_idx]
+                if "contributions" in list(
+                    health_group[health_component].keys()
+                ):
+                    contrib_names = health_group[health_component][
+                        "contributions"
+                    ].attrs["names"]
+                    for contrib_idx, contrib_name in enumerate(contrib_names):
+                        contrib_col_name = f"{health_component}|{contrib_name}"
+                        cval = health_group[health_component]["contributions"][
+                            chunk_begin_idx:chunk_end_idx, contrib_idx
+                        ]
+                        contrib_df[contrib_col_name] = cval
 
-            plotting.plot_health(health_df, datetime_chunk)
+            plotting.plot_health(health_df, contrib_df, datetime_chunk)
 
         # Features Tab
         with tab_features:
