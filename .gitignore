@@ -1,3 +1,7 @@
+# Data files
+data/
+*.hdf5
+*.h5
 
 # Cache
 *__pycache__*
