@@ -21,6 +21,7 @@ A tool to visualize data from HDF5/H5 data files that adhere to the PDX data str
 - Raw Data:
   - Chart data by record or by data variable
 - View stored metadata in tabular form
+- Offers dark, light and custom themes
 
 ## Installation
 Install dependencies by running the `setup.ps1` script in a PowerShell terminal. This process will take a few minutes.
