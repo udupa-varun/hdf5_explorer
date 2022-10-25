@@ -104,7 +104,9 @@ def plot_health_single(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
     # init figure
     # fig = go.Figure()
     fig = make_subplots(
-        rows=2, row_heights=[3, 1], subplot_titles=["Health", "Contributions"]
+        rows=2,
+        row_heights=[3, 1],
+        subplot_titles=["Health", "Top Contribution"],
     )
     max_health_val: float = 0.0
     for health_component in health_df:
@@ -149,10 +151,13 @@ def plot_health_separate(
     for health_component in health_df:
         # init figure
         # fig = go.Figure()
+        # cfig = go.Figure()
         fig = make_subplots(
             rows=2,
-            row_heights=[3, 1],
-            subplot_titles=["Health", "Contributions"],
+            row_heights=[3, 2],
+            shared_xaxes=True,
+            subplot_titles=["Health", "Top Contribution"],
+            x_title="Timestamp",
         )
 
         # compute trace
@@ -162,47 +167,80 @@ def plot_health_separate(
             name=health_component,
         )
         # add trace to figure
-        fig.add_trace(trace, row=1, col=1)
+        fig.add_trace(
+            trace,
+            row=1,
+            col=1,
+        )
 
-        contrib_labels = [
-            c.split("|")[-1]
+        # fig.update_layout(
+        #     title_x=0.5,
+        #     title_text=health_component,
+        #     # xaxis_title="Timestamp",
+        #     yaxis_title="Health Index",
+        #     showlegend=False,
+        #     row=1,
+        #     col=1,
+        # )
+
+        filtered_clabels = [
+            c
             for c in contrib_df.columns.values
             if health_component in c.split("|")[0]
         ]
+        rename_dict = {c: c.split("|")[-1] for c in filtered_clabels}
+        contrib_df = contrib_df[filtered_clabels]
+        contrib_df.rename(columns=rename_dict, inplace=True)
 
-        if contrib_labels:
-            # sort values and labels
-            contrib_values = np.array(contrib_df.iloc[0])
-            contrib_sort_indices = np.argsort(contrib_values)[::-1][
-                : min(len(contrib_values), 6)
-            ]
-            contrib_values = contrib_values[contrib_sort_indices]
-            contrib_labels = [contrib_labels[i] for i in contrib_sort_indices]
-
-            contrib_values_norm = [
-                c / np.sum(contrib_values) * 100 for c in contrib_values
-            ]
-
-            contrib_trace = go.Bar(
-                x=contrib_labels,
-                y=contrib_values_norm,
-                marker_color="blue",
+        if not contrib_df.empty:
+            idx_max = contrib_df.idxmax(axis=1)
+            # contrib_values = contrib_df[col_name]
+            trace = go.Scatter(
+                x=datetime_chunk,
+                y=idx_max,
+                name="Top contribution",
+                # marker_color="yellow",
             )
-            fig.add_trace(contrib_trace, row=2, col=1)
+            fig.add_trace(
+                trace,
+                row=2,
+                col=1,
+            )
+
+            # fig.update_traces(
+            #     hovertemplate="%{y}",
+            #     row=2,
+            #     col=1,
+            # )
+            # specific updates to figure
+            # fig.update_layout(
+            #     title_x=0.5,
+            #     title_text="Top Contribution",
+            #     xaxis_title="Timestamp",
+            #     # yaxis_title="% Contribution",
+            #     showlegend=False,
+            #     row=2,
+            #     col=1,
+            # )
 
         # common updates to figure
         fig = update_figure(fig)
+        fig.update_layout(
+            title_x=0.5,
+            title_text=health_component,
+            xaxis_showticklabels=True,
+            yaxis_title="Health Index",
+            xaxis2_showticklabels=True,
+            yaxis2_title="Contributor",
+        )
         # specific updates to figure
         fig = plot_threshold_lines(
             fig, max_health_val=max(health_df[health_component])
         )
-
-        fig.update_layout(
-            title_x=0.5,
-            title_text=health_component,
-            # xaxis_title="Timestamp",
-            yaxis_title="Health Index",
-            showlegend=False,
+        fig.update_traces(
+            hovertemplate="%{y}",
+            row=2,
+            col=1,
         )
 
         # render figure in app
@@ -250,7 +288,11 @@ def plot_threshold_lines(fig: go.Figure, max_health_val: float) -> go.Figure:
         col=1,
     )
     # apply Y axis limits
-    fig.update_yaxes(range=[0, ylim], row=1, col=1)
+    fig.update_yaxes(
+        range=[0, ylim],
+        row=1,
+        col=1,
+    )
 
     return fig
 

@@ -1,6 +1,9 @@
 import streamlit as st
 from . import plotting
 
+DEFAULT_WARNING_COLOR = "#FFA500"
+DEFAULT_ALARM_COLOR = "#FF0000"
+
 
 def render_health_controls(options: list[str]):
     """Renders form controls for the health tab.
@@ -35,7 +38,7 @@ def render_health_controls(options: list[str]):
         with col_warn_color:
             thresh_warn_color = st.color_picker(
                 label="Warning Color",
-                value="#FFA500",
+                value=DEFAULT_WARNING_COLOR,
                 key="health_warn_color",
             )
         with col_alarm_val:
@@ -50,7 +53,7 @@ def render_health_controls(options: list[str]):
         with col_alarm_color:
             thresh_alarm_color = st.color_picker(
                 label="Alarm Color",
-                value="#FF0000",
+                value=DEFAULT_ALARM_COLOR,
                 key="health_alarm_color",
             )
         with col_separate:
