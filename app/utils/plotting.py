@@ -7,6 +7,9 @@ import streamlit as st
 # ----------------
 # Generic/Common
 # ----------------
+DEFAULT_WARNING_COLOR = "#FFA500"
+DEFAULT_ALARM_COLOR = "#FF0000"
+
 chart_types = {
     "Line": "lines",
     "Scatter-Line": "lines+markers",
@@ -179,17 +182,20 @@ def plot_threshold_lines(fig: go.Figure, max_health_val: float) -> go.Figure:
     if warn_val >= alarm_val:
         st.error("Warning Threshold must be less than Alarm Threshold!")
         st.stop()
-    # get threshold colors
-    warn_color = st.session_state["health_warn_color"]
-    alarm_color = st.session_state["health_alarm_color"]
     # compute Y Axis upper limit
     ylim = max(alarm_val + 0.5, max_health_val)
     # add threshold lines
     fig.add_hline(
-        y=warn_val, line_width=4, line_dash="dash", line_color=warn_color
+        y=warn_val,
+        line_width=4,
+        line_dash="dash",
+        line_color=DEFAULT_WARNING_COLOR,
     )
     fig.add_hline(
-        y=alarm_val, line_width=4, line_dash="dash", line_color=alarm_color
+        y=alarm_val,
+        line_width=4,
+        line_dash="dash",
+        line_color=DEFAULT_ALARM_COLOR,
     )
     # apply Y axis limits
     fig.update_yaxes(range=[0, ylim])

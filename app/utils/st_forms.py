@@ -1,4 +1,5 @@
 import streamlit as st
+
 from . import plotting
 
 
@@ -18,11 +19,9 @@ def render_health_controls(options: list[str]):
         (
             col_separate,
             col_warn_val,
-            col_warn_color,
             col_alarm_val,
-            col_alarm_color,
             _,
-        ) = st.columns([2, 2, 1, 2, 1, 2], gap="medium")
+        ) = st.columns([2, 2, 2, 4], gap="medium")
         with col_warn_val:
             thresh_warn_val = st.number_input(
                 label="Warning Threshold",
@@ -32,12 +31,6 @@ def render_health_controls(options: list[str]):
                 step=0.5,
                 key="health_warn_val",
             )
-        with col_warn_color:
-            thresh_warn_color = st.color_picker(
-                label="Warning Color",
-                value="#FFA500",
-                key="health_warn_color",
-            )
         with col_alarm_val:
             thresh_alarm_val = st.number_input(
                 label="Alarm Threshold",
@@ -46,12 +39,6 @@ def render_health_controls(options: list[str]):
                 value=2.0,
                 step=0.5,
                 key="health_alarm_val",
-            )
-        with col_alarm_color:
-            thresh_alarm_color = st.color_picker(
-                label="Alarm Color",
-                value="#FF0000",
-                key="health_alarm_color",
             )
         with col_separate:
             separate_health_charts: bool = st.checkbox(
