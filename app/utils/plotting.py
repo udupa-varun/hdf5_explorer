@@ -107,6 +107,7 @@ def plot_health_single(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
         rows=2,
         row_heights=[3, 1],
         subplot_titles=["Health", "Top Contribution"],
+        x_title="Timestamp",
     )
     max_health_val: float = 0.0
     for health_component in health_df:
@@ -128,8 +129,10 @@ def plot_health_single(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
     fig.update_layout(
         title_x=0.5,
         title_text="Health Index",
-        xaxis_title="Timestamp",
-        yaxis_title="Value",
+        xaxis_showticklabels=True,
+        xaxis2_showticklabels=True,
+        yaxis_title="Health Index",
+        yaxis2_title="Contributor",
         showlegend=True,
     )
     # render figure in app
@@ -173,16 +176,6 @@ def plot_health_separate(
             col=1,
         )
 
-        # fig.update_layout(
-        #     title_x=0.5,
-        #     title_text=health_component,
-        #     # xaxis_title="Timestamp",
-        #     yaxis_title="Health Index",
-        #     showlegend=False,
-        #     row=1,
-        #     col=1,
-        # )
-
         filtered_clabels = [
             c
             for c in contrib_df.columns.values
@@ -207,31 +200,16 @@ def plot_health_separate(
                 col=1,
             )
 
-            # fig.update_traces(
-            #     hovertemplate="%{y}",
-            #     row=2,
-            #     col=1,
-            # )
-            # specific updates to figure
-            # fig.update_layout(
-            #     title_x=0.5,
-            #     title_text="Top Contribution",
-            #     xaxis_title="Timestamp",
-            #     # yaxis_title="% Contribution",
-            #     showlegend=False,
-            #     row=2,
-            #     col=1,
-            # )
-
         # common updates to figure
         fig = update_figure(fig)
         fig.update_layout(
             title_x=0.5,
             title_text=health_component,
             xaxis_showticklabels=True,
-            yaxis_title="Health Index",
             xaxis2_showticklabels=True,
+            yaxis_title="Health Index",
             yaxis2_title="Contributor",
+            showlegend=False,
         )
         # specific updates to figure
         fig = plot_threshold_lines(
@@ -295,46 +273,6 @@ def plot_threshold_lines(fig: go.Figure, max_health_val: float) -> go.Figure:
     )
 
     return fig
-
-
-# def plot_threshold_boxes(fig: go.Figure, max_health_val: float) -> go.Figure:
-#     """Plots horizontal lines on the given figure object,
-#     based on the configured threshold controls.
-
-#     :param fig: plotly figure object.
-#     :type fig: go.Figure
-#     :param max_health_val: highest health value on figure, barring thresholds.
-#     :type max_health_val: float
-#     :return: updated figure object
-#     :rtype: go.Figure
-#     """
-#     # get threshold values
-#     warn_val = st.session_state["health_warn_val"]
-#     alarm_val = st.session_state["health_alarm_val"]
-#     # check if threshold values are playing nice
-#     if warn_val >= alarm_val:
-#         st.error("Warning Threshold must be less than Alarm Threshold!")
-#         st.stop()
-#     # get threshold colors
-#     warn_color = st.session_state["health_warn_color"]
-#     alarm_color = st.session_state["health_alarm_color"]
-#     # compute Y Axis upper limit
-#     ylim = max(alarm_val + 0.5, max_health_val)
-#     # add threshold boxes
-#     fig.add_hrect(
-#         y0=warn_val,
-#         y1=alarm_val,
-#         line_width=0,
-#         fillcolor=warn_color,
-#         opacity=0.2,
-#     )
-#     fig.add_hrect(
-#         y0=alarm_val, y1=ylim, line_width=0, fillcolor=alarm_color, opacity=0.2
-#     )
-#     # apply Y axis limits
-#     fig.update_yaxes(range=[0, ylim])
-
-#     return fig
 
 
 # ----------------
