@@ -8,8 +8,8 @@ import streamlit as st
 
 from . import h5_utils, plotting
 from .st_forms import (
-    render_health_controls,
     render_feature_controls,
+    render_health_controls,
     render_rawdata_controls,
 )
 
