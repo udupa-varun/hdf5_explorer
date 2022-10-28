@@ -35,7 +35,7 @@ def update_figure(fig: go.Figure) -> go.Figure:
     :return: updated plotly figure object.
     :rtype: go.Figure
     """
-    fig.update_traces(hovertemplate="%{y:.4f}")
+    fig.update_traces(hovertemplate="%{y:.4g}")
     fig.update_layout(
         title_x=0.5,
         showlegend=True,
@@ -349,7 +349,7 @@ def plot_rawdata(
             title_text=title_labels[outer_idx],
             xaxis_title=xvar_label,
             yaxis_title="Value",
-            xaxis_hoverformat=".4f",
+            xaxis_hoverformat=".4g",
             showlegend=True,
         )
         # render figure in app

@@ -61,20 +61,18 @@ def get_task_names(file_path: Path) -> list[str]:
 def render_dataset_controls():
     """Renders the controls for dataset configuration in the sidebar."""
 
-    # with st.form("dataset_form"):
     # get directory path
     dir_path = st.text_input(
-        label="Enter Directory Path:",
+        label="Search Directory Path:",
         value="./data",
         key="dir_path",
-        # on_change=update_available_files
+        disabled=True,
     )
     search_path = Path(dir_path).resolve()
 
-    # stop if the directory does not exist
+    # if the directory does not exist, create one
     if not search_path.is_dir():
-        st.error("Invalid directory!", icon="🚨")
-        st.stop()
+        search_path.mkdir()
 
     # get files from directory path
     file_paths: list[Path] = h5_utils.search_for_datafiles(search_path)
@@ -83,9 +81,6 @@ def render_dataset_controls():
     if not file_paths:
         st.warning("No files found.", icon="⚠️")
         st.stop()
-
-    if "ready_to_tango" in st.session_state:
-        del st.session_state["ready_to_tango"]
 
     # display file names
     selected_file_path = st.selectbox(
