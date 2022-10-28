@@ -61,13 +61,12 @@ def get_task_names(file_path: Path) -> list[str]:
 def render_dataset_controls():
     """Renders the controls for dataset configuration in the sidebar."""
 
-    # with st.form("dataset_form"):
     # get directory path
     dir_path = st.text_input(
-        label="Enter Directory Path:",
-        value="./data",
+        label="Search Directory Path:",
+        value="/data",
         key="dir_path",
-        # on_change=update_available_files
+        disabled=True,
     )
     search_path = Path(dir_path).resolve()
 
@@ -83,9 +82,6 @@ def render_dataset_controls():
     if not file_paths:
         st.warning("No files found.", icon="⚠️")
         st.stop()
-
-    if "ready_to_tango" in st.session_state:
-        del st.session_state["ready_to_tango"]
 
     # display file names
     selected_file_path = st.selectbox(

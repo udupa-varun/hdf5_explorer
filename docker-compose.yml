@@ -2,8 +2,9 @@ version: "3.8"
 
 services:
   h5_explorer:
-    build: ./app
+    image: hdf5_explorer
     command: streamlit run app.py
+    build: ./app
     volumes:
       - ./app:/usr/src/app
       - ./data:/data:ro
