@@ -143,6 +143,17 @@ def render_dataset_controls():
         datetime_end = datetime.combine(date_end, datetime.min.time())
         st.session_state["datetime_end"] = datetime_end
 
+        # update chunk indices based on selected date range
+        update_chunk_state()
+        if "chunk_begin_idx" in st.session_state:
+            num_records_in_selected_range = (
+                st.session_state["chunk_end_idx"]
+                - st.session_state["chunk_begin_idx"]
+            )
+            st.caption(
+                f"Found {num_records_in_selected_range} records in selected date range."
+            )
+
 
 def update_chunk_state():
     """updates parts of the session state that are required to plot data."""
@@ -188,9 +199,6 @@ def update_main_panel():
             # "About",
         ]
     )
-    # update state first and foremost
-    update_chunk_state()
-
     if (
         "ready_to_tango" in st.session_state
         and st.session_state["ready_to_tango"]
