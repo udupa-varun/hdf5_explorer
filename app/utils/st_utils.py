@@ -138,9 +138,13 @@ def render_dataset_controls():
                 max_value=ts_max.date(),
             )
         # store as datetime in session state
-        datetime_begin = datetime.combine(date_begin, datetime.min.time())
+        datetime_begin = datetime.combine(
+            date=date_begin, time=datetime.min.time(), tzinfo=timezone.utc
+        )
         st.session_state["datetime_begin"] = datetime_begin
-        datetime_end = datetime.combine(date_end, datetime.min.time())
+        datetime_end = datetime.combine(
+            date=date_end, time=datetime.min.time(), tzinfo=timezone.utc
+        )
         st.session_state["datetime_end"] = datetime_end
 
         # update chunk indices based on selected date range
