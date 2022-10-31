@@ -21,7 +21,7 @@ def reduce_header_height():
     """CSS hack to reduce height of the main panel."""
     reduce_header_height_style = """
     <style>
-        div.block-container {padding-top:1rem;}
+        div.css-1vq4p4l {padding-top:4rem;}
     </style>
     """
     st.markdown(reduce_header_height_style, unsafe_allow_html=True)
@@ -31,7 +31,7 @@ def reduce_sidebar_height():
     """CSS hack to reduce height of the sidebar."""
     reduce_sidebar_height_style = """
     <style>
-        div.css-hxt7ib {padding-top:1rem;}
+        div.css-18e3th9 {padding-top:1rem;}
     </style>
     """
     st.markdown(reduce_sidebar_height_style, unsafe_allow_html=True)
