@@ -273,13 +273,25 @@ def update_main_panel():
         with tab_rawdata:
             # prepare variable and record labels
             rawdata_group: h5py.Group = file_obj[task]["raw_data"]
-            rawdata_names: list[str] = rawdata_group.attrs["names"]
+            rawdata_var_names: list[str] = rawdata_group.attrs["names"]
             record_names: list[str] = meta_df["record_name"]
+
+            # filter for numeric dtypes
+            rawdata_var_dtypes = [
+                rawdata_group[k].dtype for k in rawdata_var_names
+            ]
+            rawdata_var_names = [
+                var_name
+                for (var_name, var_dtype) in zip(
+                    rawdata_var_names, rawdata_var_dtypes
+                )
+                if np.issubdtype(var_dtype, np.number)
+            ]
 
             # render plot controls
             render_rawdata_controls(
                 record_options=record_names,
-                var_options=rawdata_names,
+                var_options=rawdata_var_names,
             )
             # get indices for record names
             record_indices_in_file: list[int] = get_record_indices(
