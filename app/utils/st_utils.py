@@ -15,6 +15,8 @@ from .st_forms import (
 
 # expected attributes in H5 groups representing DAQ Tasks
 TASK_ATTRS = ["ancestors", "asset_type", "daq_task"]
+# max number of allowable rows for the feature table
+FEAT_TABLE_ROW_LIMIT = int(1e3)
 
 
 def reduce_header_height():
@@ -258,6 +260,7 @@ def update_main_panel():
             feature_chunk = feat_dset[chunk_begin_idx:chunk_end_idx]
             feature_df = pd.DataFrame(feature_chunk, columns=feature_names)
             feature_df.insert(0, column="Timestamp", value=datetime_chunk)
+            # feature_df.set_index("Timestamp", drop=False, inplace=True)
 
             # set up sub-tabs
             subtab_charts, subtab_table = st.tabs(["Charts", "Table"])
@@ -267,11 +270,7 @@ def update_main_panel():
 
                 plotting.plot_features(feature_df)
             with subtab_table:
-                st.dataframe(
-                    feature_df,
-                    # feature_df.style.highlight_max(axis=0, color="red"),
-                    use_container_width=True,
-                )
+                render_feature_table(feature_df)
 
         # Raw Data Tab
         with tab_rawdata:
@@ -404,3 +403,21 @@ def get_record_indices(record_names: list[str]) -> list[int]:
         chunk_indices_in_file[i] for i in record_indices_in_chunk
     ]
     return record_indices_in_file
+
+
+def render_feature_table(feature_df: pd.DataFrame):
+    """renders a table for the provided dataframe, upto to a certain number of rows
+
+    :param feature_df: dataframe with feature data
+    :type feature_df: pd.DataFrame
+    """
+    feat_table_data = feature_df
+    total_row_count = feature_df.shape[0]
+    if total_row_count > FEAT_TABLE_ROW_LIMIT:
+        st.warning(f"Limiting table to the first {FEAT_TABLE_ROW_LIMIT} rows.")
+        feat_table_data = feature_df.head(FEAT_TABLE_ROW_LIMIT)
+    st.dataframe(
+        # feat_table_data,
+        feat_table_data.style.highlight_max(axis="index", color="red"),
+        use_container_width=True,
+    )
