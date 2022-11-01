@@ -25,19 +25,45 @@ def search_for_datafiles(dir_path: Path) -> list[Path]:
 
 
 def read_file(file_path: Path) -> h5py.File:
+    """opens an HDF5 file in read-only mode and returns the file object.
+
+    :param file_path: path to HDF5 file
+    :type file_path: Path
+    :return: read-only h5py file object for the given file path
+    :rtype: h5py.File
+    """
     file_obj = h5py.File(name=file_path, mode="r")
 
     return file_obj
 
 
 def get_tasks(file_obj: h5py.File) -> list[str]:
-    # global file_obj
+    """fetches the DAQ task names (top level group names) from an h5py file object.
+
+    :param file_obj: opened h5py file object
+    :type file_obj: h5py.File
+    :return: list of task names in file object
+    :rtype: list[str]
+    """
     return list(file_obj.keys())
 
 
 def get_closest_index_before_value(
-    dset: h5py.Dataset, search_val, chunk_size=CHUNK_SIZE
+    dset: h5py.Dataset, search_val: float, chunk_size: int = CHUNK_SIZE
 ) -> int | None:
+    """finds the index with the closest value before
+    the provided search value in an h5py Dataset.
+    Assumes dataset is sorted ascending.
+
+    :param dset: h5py dataset to search inside
+    :type dset: h5py.Dataset
+    :param search_val: value to search for in the dataset
+    :type search_val: float
+    :param chunk_size: chunk size that the dataset will be broken into, defaults to 10000.
+    :type chunk_size: int, optional
+    :return: matching index value if found, otherwise None
+    :rtype: int | None
+    """
     num_chunks = int(np.ceil(dset.shape[0] / chunk_size))
     idx_found = None
     for chunk_idx in range(num_chunks):
@@ -55,6 +81,17 @@ def get_closest_index_before_value(
 
 
 def get_closest_index_after_value(dset: h5py.Dataset, val) -> int | None:
+    """finds the index with the closest value after
+    the provided search value in an h5py Dataset.
+    Assumes dataset is sorted ascending.
+
+    :param dset: h5py dataset to search inside
+    :type dset: h5py.Dataset
+    :param search_val: value to search for in the dataset
+    :type search_val: float
+    :return: matching index value if found, otherwise None
+    :rtype: int | None
+    """
     res = None
     idx_found = get_closest_index_before_value(dset, val)
     if idx_found is not None:

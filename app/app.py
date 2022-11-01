@@ -31,8 +31,6 @@ def main():
 
     # main panel
     with st.container():
-        # st_utils.update_state()
-        # if st.session_state["ready_to_tango"]:
         st_utils.update_main_panel()
 
 
