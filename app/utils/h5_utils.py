@@ -45,7 +45,10 @@ def get_tasks(file_obj: h5py.File) -> list[str]:
     :return: list of task names in file object
     :rtype: list[str]
     """
-    return list(file_obj.keys())
+    group_names = [
+        key for key in file_obj.keys() if isinstance(file_obj[key], h5py.Group)
+    ]
+    return group_names
 
 
 def get_closest_index_before_value(
