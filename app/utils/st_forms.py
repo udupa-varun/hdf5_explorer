@@ -66,7 +66,8 @@ def render_feature_controls(options: list[str]):
         render_xy_controls(
             form_prefix="feat",
             options=options,
-            default_y_idx=2,
+            x_idx=1,
+            y_idx=2,
         )
 
         separate_feat_charts: bool = st.checkbox(
@@ -104,7 +105,8 @@ def render_rawdata_controls(record_options: list[str], var_options: list[str]):
         render_xy_controls(
             form_prefix="rawdata",
             options=var_options,
-            default_y_idx=1,
+            x_idx=0,
+            y_idx=1,
         )
 
         submitted = st.form_submit_button("Plot Data")
@@ -113,7 +115,8 @@ def render_rawdata_controls(record_options: list[str], var_options: list[str]):
 def render_xy_controls(
     form_prefix: str,
     options: list[str],
-    default_y_idx: int = 1,
+    x_idx: int = 0,
+    y_idx: int = 1,
 ):
     """Renders common form controls like variable and chart type selection.
 
@@ -121,23 +124,29 @@ def render_xy_controls(
     :type form_prefix: str
     :param options: list of variables to populate X and Y Axis controls with.
     :type options: list[str]
-    :param default_y_idx: default index to use when populating Y Axis (to avoid timestamps etc.),
+    :param x_idx: default index to use when populating X Axis,
+    defaults to 0. Note that an "Index" option is added here and must be accounted for.
+    :type x_idx: int, optional
+    :param y_idx: default index to use when populating Y Axis,
     defaults to 1
-    :type default_y_idx: int, optional
+    :type y_idx: int, optional
     """
     col_x, col_y, col_chart = st.columns([4, 4, 2])
+    xoptions = options.copy()
+    xoptions.insert(0, "Index")
     with col_x:
         x_var = st.selectbox(
             label="X Axis:",
-            options=options,
+            options=xoptions,
             key=f"{form_prefix}_x",
+            index=x_idx,
         )
     with col_y:
         y_vars = st.multiselect(
             label="Y Axis:",
             options=options,
             key=f"{form_prefix}_y",
-            default=options[default_y_idx],
+            default=options[y_idx],
         )
     with col_chart:
         selected_chart = st.selectbox(

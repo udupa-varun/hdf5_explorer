@@ -155,7 +155,7 @@ def render_dataset_controls():
                 - st.session_state["chunk_begin_idx"]
             )
             st.caption(
-                f"Found {num_records_in_selected_range} records in selected date range."
+                f"Found {num_records_in_selected_range} records in the selected date range."
             )
 
 
@@ -258,20 +258,17 @@ def update_main_panel():
             feature_chunk = feat_dset[chunk_begin_idx:chunk_end_idx]
             feature_df = pd.DataFrame(feature_chunk, columns=feature_names)
             feature_df.insert(0, column="Timestamp", value=datetime_chunk)
+            # feature_df.set_index("Timestamp", drop=False, inplace=True)
 
             # set up sub-tabs
             subtab_charts, subtab_table = st.tabs(["Charts", "Table"])
             with subtab_charts:
                 # render plot controls
-                render_feature_controls(options=feature_df.columns)
+                render_feature_controls(options=list(feature_df.columns))
 
                 plotting.plot_features(feature_df)
             with subtab_table:
-                st.dataframe(
-                    feature_df,
-                    # feature_df.style.highlight_max(axis=0, color="red"),
-                    use_container_width=True,
-                )
+                plotting.display_feature_table(feature_df)
 
         # Raw Data Tab
         with tab_rawdata:
