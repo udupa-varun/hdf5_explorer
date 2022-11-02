@@ -15,8 +15,6 @@ from .st_forms import (
 
 # expected attributes in H5 groups representing DAQ Tasks
 TASK_ATTRS = ["ancestors", "asset_type", "daq_task"]
-# max number of allowable rows for the feature table
-FEAT_TABLE_ROW_LIMIT = int(1e3)
 
 
 def reduce_header_height():
@@ -157,7 +155,7 @@ def render_dataset_controls():
                 - st.session_state["chunk_begin_idx"]
             )
             st.caption(
-                f"Found {num_records_in_selected_range} records in selected date range."
+                f"Found {num_records_in_selected_range} records in the selected date range."
             )
 
 
@@ -266,11 +264,11 @@ def update_main_panel():
             subtab_charts, subtab_table = st.tabs(["Charts", "Table"])
             with subtab_charts:
                 # render plot controls
-                render_feature_controls(options=feature_df.columns)
+                render_feature_controls(options=list(feature_df.columns))
 
                 plotting.plot_features(feature_df)
             with subtab_table:
-                render_feature_table(feature_df)
+                plotting.display_feature_table(feature_df)
 
         # Raw Data Tab
         with tab_rawdata:
@@ -403,21 +401,3 @@ def get_record_indices(record_names: list[str]) -> list[int]:
         chunk_indices_in_file[i] for i in record_indices_in_chunk
     ]
     return record_indices_in_file
-
-
-def render_feature_table(feature_df: pd.DataFrame):
-    """renders a table for the provided dataframe, upto to a certain number of rows
-
-    :param feature_df: dataframe with feature data
-    :type feature_df: pd.DataFrame
-    """
-    feat_table_data = feature_df
-    total_row_count = feature_df.shape[0]
-    if total_row_count > FEAT_TABLE_ROW_LIMIT:
-        st.warning(f"Limiting table to the first {FEAT_TABLE_ROW_LIMIT} rows.")
-        feat_table_data = feature_df.head(FEAT_TABLE_ROW_LIMIT)
-    st.dataframe(
-        # feat_table_data,
-        feat_table_data.style.highlight_max(axis="index", color="red"),
-        use_container_width=True,
-    )

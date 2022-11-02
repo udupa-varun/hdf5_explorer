@@ -7,8 +7,13 @@ import streamlit as st
 # ----------------
 # Generic/Common
 # ----------------
+# default colors for health thresholds
 DEFAULT_WARNING_COLOR = "#FFA500"
 DEFAULT_ALARM_COLOR = "#FF0000"
+
+# max number of allowable rows for the features table
+FEAT_TABLE_ROW_LIMIT = int(1e3)
+FEAT_TABLE_HIGHLIGHT_COLOR = "#ff4b4b"
 
 chart_types = {
     "Line": "lines",
@@ -230,11 +235,12 @@ def plot_features_single(feature_df: pd.DataFrame):
     """
     # init figure
     fig = go.Figure()
+    xvar_label = st.session_state["feat_x"]
     # plot selected features on figure
     for feat in st.session_state["feat_y"]:
         # compute trace
         trace = go.Scatter(
-            x=feature_df[st.session_state["feat_x"]],
+            x=feature_df[xvar_label] if xvar_label is not "Index" else None,
             y=feature_df[feat],
             name=feat,
             mode=chart_types[st.session_state["feat_charttype"]],
@@ -247,7 +253,7 @@ def plot_features_single(feature_df: pd.DataFrame):
     fig.update_layout(
         title_x=0.5,
         title_text="Features",
-        xaxis_title="Timestamp",
+        xaxis_title=xvar_label,
         yaxis_title="Value",
         showlegend=True,
     )
@@ -261,13 +267,14 @@ def plot_features_separate(feature_df: pd.DataFrame):
     :param feature_df: dataframe with feature values.
     :type feature_df: pd.DataFrame
     """
+    xvar_label = st.session_state["feat_x"]
     # plot selected features on figure
     for feat in st.session_state["feat_y"]:
         # init figure
         fig = go.Figure()
         # compute trace
         trace = go.Scatter(
-            x=feature_df[st.session_state["feat_x"]],
+            x=feature_df[xvar_label] if xvar_label is not "Index" else None,
             y=feature_df[feat],
             name=feat,
             mode=chart_types[st.session_state["feat_charttype"]],
@@ -280,12 +287,34 @@ def plot_features_separate(feature_df: pd.DataFrame):
         fig.update_layout(
             title_x=0.5,
             title_text=feat,
-            xaxis_title="Timestamp",
+            xaxis_title=xvar_label,
             yaxis_title="Value",
             showlegend=False,
         )
         # render figure in app
         st.plotly_chart(fig, use_container_width=True, config=chart_config)
+
+
+def display_feature_table(df: pd.DataFrame):
+    """displays a table for the provided dataframe, upto to a certain number of rows.
+    Highlights the maximum value in a column.
+
+    :param df: dataframe with feature data
+    :type df: pd.DataFrame
+    """
+    feat_table_data = df
+    total_row_count = df.shape[0]
+    if total_row_count > FEAT_TABLE_ROW_LIMIT:
+        st.warning(f"Limiting table to the first {FEAT_TABLE_ROW_LIMIT} rows.")
+        feat_table_data = df.head(FEAT_TABLE_ROW_LIMIT)
+    st.dataframe(
+        # feat_table_data,
+        feat_table_data.style.highlight_max(
+            axis="index",
+            color=FEAT_TABLE_HIGHLIGHT_COLOR,
+        ),
+        use_container_width=True,
+    )
 
 
 # ----------------
@@ -330,7 +359,11 @@ def plot_rawdata(
         for (inner_idx, inner_var) in enumerate(inner_looper):
             yvar_label = outer_var if chart_by_var else inner_var
             record_idx = inner_var if chart_by_var else outer_var
-            xdata = rawdata_group[xvar_label][record_idx]
+            xdata = (
+                rawdata_group[xvar_label][record_idx]
+                if xvar_label is not "Index"
+                else None
+            )
             ydata = rawdata_group[yvar_label][record_idx]
             trace = go.Scatter(
                 x=xdata,
