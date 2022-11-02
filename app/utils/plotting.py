@@ -240,7 +240,7 @@ def plot_features_single(feature_df: pd.DataFrame):
     for feat in st.session_state["feat_y"]:
         # compute trace
         trace = go.Scatter(
-            x=feature_df[xvar_label] if xvar_label is not "Index" else None,
+            x=feature_df[xvar_label] if xvar_label != "Index" else None,
             y=feature_df[feat],
             name=feat,
             mode=chart_types[st.session_state["feat_charttype"]],
@@ -274,7 +274,7 @@ def plot_features_separate(feature_df: pd.DataFrame):
         fig = go.Figure()
         # compute trace
         trace = go.Scatter(
-            x=feature_df[xvar_label] if xvar_label is not "Index" else None,
+            x=feature_df[xvar_label] if xvar_label != "Index" else None,
             y=feature_df[feat],
             name=feat,
             mode=chart_types[st.session_state["feat_charttype"]],
@@ -361,7 +361,7 @@ def plot_rawdata(
             record_idx = inner_var if chart_by_var else outer_var
             xdata = (
                 rawdata_group[xvar_label][record_idx]
-                if xvar_label is not "Index"
+                if xvar_label != "Index"
                 else None
             )
             ydata = rawdata_group[yvar_label][record_idx]
