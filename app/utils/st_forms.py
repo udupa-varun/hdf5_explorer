@@ -62,18 +62,18 @@ def render_feature_controls(options: list[str]):
     :param options: list of feature labels in the selected task.
     :type options: list[str]
     """
-    with st.form("feat_form") as xy_form:
+    with st.form("feat_form"):
         render_xy_controls(
             form_prefix="feat",
             options=options,
             x_idx=1,
-            y_idx=2,
+            y_idx=2 if len(options) > 2 else 1,
         )
 
         separate_feat_charts: bool = st.checkbox(
             label="Plot in separate charts", key="separate_feat_charts"
         )
-        submitted = st.form_submit_button("Plot Data")
+        submitted: bool = st.form_submit_button("Plot Data")
 
 
 def render_rawdata_controls(record_options: list[str], var_options: list[str]):
@@ -109,7 +109,7 @@ def render_rawdata_controls(record_options: list[str], var_options: list[str]):
             y_idx=1,
         )
 
-        submitted = st.form_submit_button("Plot Data")
+        submitted: bool = st.form_submit_button("Plot Data")
 
 
 def render_xy_controls(
