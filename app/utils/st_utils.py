@@ -49,11 +49,8 @@ def get_task_names(file_path: Path) -> list[str]:
     task_names = []
     with h5_utils.read_file(file_path) as file_obj:
         task_names = [
-            k
-            for k in list(file_obj.keys())
-            if isinstance(file_obj[k], h5py.Group)
+            k for k in list(file_obj.keys()) if isinstance(file_obj[k], h5py.Group)
         ]
-        # task_names = list(file_obj.keys())
 
     return task_names
 
@@ -95,7 +92,8 @@ def render_dataset_controls():
         # file must have groups present
         if not task_names:
             st.error(
-                "No groups were found in the data file. This is probably not a PDX H5 file!",
+                "No groups were found in the data file. "
+                "This is probably not a PDX H5 file!",
                 icon="⚠️",
             )
             st.stop()
@@ -117,9 +115,7 @@ def render_dataset_controls():
 
             timestamp_dset = file_obj[selected_task]["timestamps"]
             ts_min = datetime.fromtimestamp(timestamp_dset[0], tz=timezone.utc)
-            ts_max = datetime.fromtimestamp(
-                timestamp_dset[-1], tz=timezone.utc
-            )
+            ts_max = datetime.fromtimestamp(timestamp_dset[-1], tz=timezone.utc)
 
         # set date pickers based on timestamp range from file
         col1, col2 = st.columns(2)
@@ -151,11 +147,11 @@ def render_dataset_controls():
         update_chunk_state()
         if "chunk_begin_idx" in st.session_state:
             num_records_in_selected_range = (
-                st.session_state["chunk_end_idx"]
-                - st.session_state["chunk_begin_idx"]
+                st.session_state["chunk_end_idx"] - st.session_state["chunk_begin_idx"]
             )
             st.caption(
-                f"Found {num_records_in_selected_range} records in the selected date range."
+                f"Found {num_records_in_selected_range} "
+                "records in the selected date range."
             )
 
 
@@ -172,9 +168,7 @@ def update_chunk_state():
         # get chunk limits
         ts_begin = st.session_state["datetime_begin"].timestamp()
         ts_end = st.session_state["datetime_end"].timestamp()
-        chunk_end_idx = h5_utils.get_closest_index_after_value(
-            timestamp_dset, ts_end
-        )
+        chunk_end_idx = h5_utils.get_closest_index_after_value(timestamp_dset, ts_end)
         chunk_begin_idx = h5_utils.get_closest_index_before_value(
             timestamp_dset, ts_begin
         )
@@ -203,18 +197,13 @@ def update_main_panel():
             # "About",
         ]
     )
-    if (
-        "ready_to_tango" in st.session_state
-        and st.session_state["ready_to_tango"]
-    ):
+    if "ready_to_tango" in st.session_state and st.session_state["ready_to_tango"]:
         file_path = Path(st.session_state["file_path_selected"])
         task: str = st.session_state["task"]
 
         # read from H5 file
         file_obj: h5py.File = h5_utils.read_file(file_path)
-        st.session_state["file_path_loaded"] = Path(
-            file_obj.filename
-        ).resolve()
+        st.session_state["file_path_loaded"] = Path(file_obj.filename).resolve()
 
         # get timestamp dataset
         timestamp_dset: h5py.Dataset = file_obj[task]["timestamps"]
@@ -278,14 +267,10 @@ def update_main_panel():
             record_names: list[str] = meta_df["record_name"]
 
             # filter for numeric dtypes
-            rawdata_var_dtypes = [
-                rawdata_group[k].dtype for k in rawdata_var_names
-            ]
+            rawdata_var_dtypes = [rawdata_group[k].dtype for k in rawdata_var_names]
             rawdata_var_names = [
                 var_name
-                for (var_name, var_dtype) in zip(
-                    rawdata_var_names, rawdata_var_dtypes
-                )
+                for (var_name, var_dtype) in zip(rawdata_var_names, rawdata_var_dtypes)
                 if np.issubdtype(var_dtype, np.number)
             ]
 
@@ -295,14 +280,10 @@ def update_main_panel():
                 var_options=rawdata_var_names,
             )
             # get indices for record names
-            record_indices_in_file: list[int] = get_record_indices(
-                record_names
-            )
+            record_indices_in_file: list[int] = get_record_indices(record_names)
 
             # set up context for plotting chart(s)
-            selected_record_names: list[str] = st.session_state[
-                "rawdata_records"
-            ]
+            selected_record_names: list[str] = st.session_state["rawdata_records"]
             yvar_labels: list[str] = st.session_state["rawdata_y"]
 
             # hax
@@ -397,7 +378,5 @@ def get_record_indices(record_names: list[str]) -> list[int]:
             chunk_end_idx,
         )
     )
-    record_indices_in_file = [
-        chunk_indices_in_file[i] for i in record_indices_in_chunk
-    ]
+    record_indices_in_file = [chunk_indices_in_file[i] for i in record_indices_in_chunk]
     return record_indices_in_file
