@@ -315,7 +315,7 @@ def update_main_panel():
 
         # Metadata Tab
         with tab_metadata:
-            st.dataframe(meta_df, use_container_width=True)
+            st.dataframe(meta_df, use_container_width=True, height=500)
 
         # close file handler
         file_obj.close()

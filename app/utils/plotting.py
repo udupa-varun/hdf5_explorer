@@ -312,6 +312,7 @@ def display_feature_table(df: pd.DataFrame):
             color=FEAT_TABLE_HIGHLIGHT_COLOR,
         ),
         use_container_width=True,
+        height=500,
     )
 
 
