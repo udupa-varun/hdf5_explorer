@@ -155,9 +155,7 @@ def plot_health_separate(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
         # common updates to figure
         fig = update_figure(fig)
         # specific updates to figure
-        fig = plot_threshold_lines(
-            fig, max_health_val=max(health_df[health_component])
-        )
+        fig = plot_threshold_lines(fig, max_health_val=max(health_df[health_component]))
         fig.update_layout(
             title_x=0.5,
             title_text=health_component,
@@ -308,12 +306,13 @@ def display_feature_table(df: pd.DataFrame):
         st.warning(f"Limiting table to the first {FEAT_TABLE_ROW_LIMIT} rows.")
         feat_table_data = df.head(FEAT_TABLE_ROW_LIMIT)
     st.dataframe(
-        # feat_table_data,
-        feat_table_data.style.highlight_max(
-            axis="index",
-            color=FEAT_TABLE_HIGHLIGHT_COLOR,
-        ),
+        feat_table_data,
+        # feat_table_data.style.highlight_max(
+        #     axis="index",
+        #     color=FEAT_TABLE_HIGHLIGHT_COLOR,
+        # ),
         use_container_width=True,
+        height=500,
     )
 
 
@@ -330,7 +329,8 @@ def plot_rawdata(
     title_labels: list[str],
     chart_by_var: bool,
 ):
-    """Plots raw data charts. This could end up several ways depending on the configured controls:
+    """Plots raw data charts.
+    This could end up several ways depending on the configured controls:
     1. one or more charts, for each selected record.
     2. one or more charts, for each selected data variable.
 
@@ -345,7 +345,8 @@ def plot_rawdata(
     :param trace_labels: labels for the traces, to display in the legend.
     list of record names (or Y Axis variables).
     :type trace_labels: list[str]
-    :param title_labels: labels for the titles. list of Y Axis variables (or record names).
+    :param title_labels: labels for the titles.
+    list of Y Axis variables (or record names).
     :type title_labels: list[str]
     :param chart_by_var: truth value used to navigate our way through this puzzle.
     :type chart_by_var: bool
@@ -360,9 +361,7 @@ def plot_rawdata(
             yvar_label = outer_var if chart_by_var else inner_var
             record_idx = inner_var if chart_by_var else outer_var
             xdata = (
-                rawdata_group[xvar_label][record_idx]
-                if xvar_label != "Index"
-                else None
+                rawdata_group[xvar_label][record_idx] if xvar_label != "Index" else None
             )
             ydata = rawdata_group[yvar_label][record_idx]
             trace = go.Scatter(
