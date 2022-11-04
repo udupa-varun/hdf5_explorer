@@ -306,11 +306,11 @@ def display_feature_table(df: pd.DataFrame):
         st.warning(f"Limiting table to the first {FEAT_TABLE_ROW_LIMIT} rows.")
         feat_table_data = df.head(FEAT_TABLE_ROW_LIMIT)
     st.dataframe(
-        # feat_table_data,
-        feat_table_data.style.highlight_max(
-            axis="index",
-            color=FEAT_TABLE_HIGHLIGHT_COLOR,
-        ),
+        feat_table_data,
+        # feat_table_data.style.highlight_max(
+        #     axis="index",
+        #     color=FEAT_TABLE_HIGHLIGHT_COLOR,
+        # ),
         use_container_width=True,
         height=500,
     )

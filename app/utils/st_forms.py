@@ -60,7 +60,9 @@ def render_xy_controls(
     :type y_idx: int, optional
     """
     col_x, col_y, col_chart = st.columns([4, 4, 2])
+    # search for timestamp patterns in variable options
     ts_idx = search_for_timestamp_in(options)
+    # override X Axis if a timestamp variable was found
     if ts_idx is not None:
         x_idx = ts_idx
 
@@ -164,7 +166,7 @@ def render_feature_controls(options: list[str]):
             form_prefix="feat",
             options=options,
             x_idx=0,
-            y_idx=2 if len(options) > 2 else 1,
+            y_idx=1 if len(options) > 1 else 0,
         )
 
         st.checkbox(label="Plot in separate charts", key="separate_feat_charts")
