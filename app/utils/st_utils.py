@@ -93,7 +93,7 @@ def render_dataset_controls():
         if not task_names:
             st.error(
                 "No groups were found in the data file. "
-                "This is probably not a PDX H5 file!",
+                "This probably isn't a valid PDX H5 file!",
                 icon="⚠️",
             )
             st.stop()
@@ -109,7 +109,7 @@ def render_dataset_controls():
             if list(file_obj[selected_task].attrs.keys()) != TASK_ATTRS:
                 st.error(
                     "Selected group does not have the expected DAQ Task attributes. "
-                    "This is probably not a PDX H5 file!"
+                    "This probably isn't a valid PDX DAQ task!"
                 )
                 st.stop()
 
@@ -223,95 +223,125 @@ def update_main_panel():
         meta_dset: h5py.Dataset = file_obj[task]["record_meta_data"]
         meta_df = get_metadata_chunk(meta_dset)
 
+        # stop if there are no records in the configured range
+        if meta_df.empty:
+            st.error("No records in the selected range!")
+            st.stop()
+
         # Health Tab
         with tab_health:
             health_group: h5py.Group = file_obj[task]["health"]
-            health_options: list[str] = list(health_group.keys())
-            # render plot controls
-            render_health_controls(options=health_options)
+            health_component_names: np.ndarray = health_group.attrs["names"]
+            # only proceed if health components are present
+            if health_component_names.size > 0 and len(health_group.keys()) > 0:
+                # render plot controls
+                render_health_controls(options=health_component_names)
 
-            # prepare dataframe
-            health_df = pd.DataFrame()
-            for health_component in st.session_state["health_components"]:
-                health_df[health_component] = health_group[health_component][
-                    "health_values"
-                ][chunk_begin_idx:chunk_end_idx]
+                # prepare dataframe
+                health_df = pd.DataFrame()
+                for health_component in st.session_state["health_components"]:
+                    health_df[health_component] = health_group[health_component][
+                        "health_values"
+                    ][chunk_begin_idx:chunk_end_idx]
 
-            plotting.plot_health(health_df, datetime_chunk)
+                plotting.plot_health(health_df, datetime_chunk)
+            else:
+                st.warning("No health components detected.")
 
         # Features Tab
         with tab_features:
             # prepare dataframe based on configured chunk
             feat_dset: h5py.Dataset = file_obj[task]["features"]
-            feature_names = feat_dset.attrs["names"]
-            feature_chunk = feat_dset[chunk_begin_idx:chunk_end_idx]
-            feature_df = pd.DataFrame(feature_chunk, columns=feature_names)
-            feature_df.insert(0, column="Timestamp", value=datetime_chunk)
-            # feature_df.set_index("Timestamp", drop=False, inplace=True)
+            feature_names: np.ndarray = feat_dset.attrs["names"]
+            feature_chunk: np.ndarray = feat_dset[chunk_begin_idx:chunk_end_idx]
 
-            # set up sub-tabs
-            subtab_charts, subtab_table = st.tabs(["Charts", "Table"])
-            with subtab_charts:
-                # render plot controls
-                render_feature_controls(options=list(feature_df.columns))
+            # if features are present, load them into dataframe
+            if feature_names.size > 0 and feature_chunk.size > 0:
+                # feature_chunk = feat_dset[chunk_begin_idx:chunk_end_idx]
+                feature_df = pd.DataFrame(feature_chunk, columns=feature_names)
+                feature_df.insert(0, column="Timestamp", value=datetime_chunk)
+                # feature_df.set_index("Timestamp", drop=False, inplace=True)
+            # otherwise init empty dataframe
+            else:
+                feature_df = pd.DataFrame()
 
-                plotting.plot_features(feature_df)
-            with subtab_table:
-                plotting.display_feature_table(feature_df)
+            # only proceed if feature values are available
+            if not feature_df.empty:
+                # set up sub-tabs
+                subtab_charts, subtab_table = st.tabs(["Charts", "Table"])
+                with subtab_charts:
+                    # render plot controls
+                    render_feature_controls(options=list(feature_df.columns))
+
+                    plotting.plot_features(feature_df)
+                with subtab_table:
+                    plotting.display_feature_table(feature_df)
+            else:
+                st.warning("No features detected.")
 
         # Raw Data Tab
         with tab_rawdata:
             # prepare variable and record labels
             rawdata_group: h5py.Group = file_obj[task]["raw_data"]
-            rawdata_var_names: list[str] = rawdata_group.attrs["names"]
-            record_names: list[str] = meta_df["record_name"]
+            rawdata_var_names: np.ndarray = rawdata_group.attrs["names"]
+            record_names: np.ndarray = meta_df["record_name"]
 
-            # filter for numeric dtypes
-            rawdata_var_dtypes = [rawdata_group[k].dtype for k in rawdata_var_names]
-            rawdata_var_names = [
-                var_name
-                for (var_name, var_dtype) in zip(rawdata_var_names, rawdata_var_dtypes)
-                if np.issubdtype(var_dtype, np.number)
-            ]
+            # check if raw data variables are available
+            if rawdata_var_names.size > 0:
+                # prune for numeric dtypes
+                rawdata_var_dtypes = [rawdata_group[k].dtype for k in rawdata_var_names]
+                rawdata_var_names = np.array(
+                    [
+                        var_name
+                        for (var_name, var_dtype) in zip(
+                            rawdata_var_names, rawdata_var_dtypes
+                        )
+                        if np.issubdtype(var_dtype, np.number)
+                    ]
+                )
 
-            # render plot controls
-            render_rawdata_controls(
-                record_options=record_names,
-                var_options=rawdata_var_names,
-            )
-            # get indices for record names
-            record_indices_in_file: list[int] = get_record_indices(record_names)
+            # check if raw data variables are still available after pruning
+            if rawdata_var_names.size > 0:
+                # render plot controls
+                render_rawdata_controls(
+                    record_options=record_names,
+                    var_options=list(rawdata_var_names),
+                )
+                # get indices for record names
+                record_indices_in_file: list[int] = get_record_indices(record_names)
 
-            # set up context for plotting chart(s)
-            selected_record_names: list[str] = st.session_state["rawdata_records"]
-            yvar_labels: list[str] = st.session_state["rawdata_y"]
+                # set up context for plotting chart(s)
+                selected_record_names: list[str] = st.session_state["rawdata_records"]
+                yvar_labels: list[str] = st.session_state["rawdata_y"]
 
-            # hax
-            chartby = st.session_state["rawdata_chartby"]
-            if chartby == "Variable":
-                outer_looper = yvar_labels
-                inner_looper = record_indices_in_file
-                trace_labels = selected_record_names
-                title_labels = yvar_labels
-                chart_by_var: bool = True
-            elif chartby == "Record":
-                outer_looper = record_indices_in_file
-                inner_looper = yvar_labels
-                trace_labels = yvar_labels
-                title_labels = selected_record_names
-                chart_by_var: bool = False
+                # hax
+                chartby = st.session_state["rawdata_chartby"]
+                if chartby == "Variable":
+                    outer_looper = yvar_labels
+                    inner_looper = record_indices_in_file
+                    trace_labels = selected_record_names
+                    title_labels = yvar_labels
+                    chart_by_var: bool = True
+                elif chartby == "Record":
+                    outer_looper = record_indices_in_file
+                    inner_looper = yvar_labels
+                    trace_labels = yvar_labels
+                    title_labels = selected_record_names
+                    chart_by_var: bool = False
+                else:
+                    st.error("Well this is unexpected...")
+                    st.stop()
+
+                plotting.plot_rawdata(
+                    rawdata_group,
+                    outer_looper,
+                    inner_looper,
+                    trace_labels,
+                    title_labels,
+                    chart_by_var,
+                )
             else:
-                st.error("Well this is unexpected...")
-                st.stop()
-
-            plotting.plot_rawdata(
-                rawdata_group,
-                outer_looper,
-                inner_looper,
-                trace_labels,
-                title_labels,
-                chart_by_var,
-            )
+                st.warning("No raw data available.")
 
         # Metadata Tab
         with tab_metadata:
