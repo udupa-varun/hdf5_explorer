@@ -231,9 +231,9 @@ def update_main_panel():
         # Health Tab
         with tab_health:
             health_group: h5py.Group = file_obj[task]["health"]
-            health_component_names: np.ndarray = health_group.attrs["names"]
+            health_component_names = get_group_members(health_group)
             # only proceed if health components are present
-            if health_component_names.size > 0 and len(health_group.keys()) > 0:
+            if health_component_names:
                 # render plot controls
                 render_health_controls(options=health_component_names)
 
@@ -283,29 +283,27 @@ def update_main_panel():
         with tab_rawdata:
             # prepare variable and record labels
             rawdata_group: h5py.Group = file_obj[task]["raw_data"]
-            rawdata_var_names: np.ndarray = rawdata_group.attrs["names"]
+            rawdata_var_names = get_group_members(rawdata_group)
             record_names: np.ndarray = meta_df["record_name"]
 
             # check if raw data variables are available
-            if rawdata_var_names.size > 0:
+            if rawdata_var_names:
                 # prune for numeric dtypes
                 rawdata_var_dtypes = [rawdata_group[k].dtype for k in rawdata_var_names]
-                rawdata_var_names = np.array(
-                    [
-                        var_name
-                        for (var_name, var_dtype) in zip(
-                            rawdata_var_names, rawdata_var_dtypes
-                        )
-                        if np.issubdtype(var_dtype, np.number)
-                    ]
-                )
+                rawdata_var_names = [
+                    var_name
+                    for (var_name, var_dtype) in zip(
+                        rawdata_var_names, rawdata_var_dtypes
+                    )
+                    if np.issubdtype(var_dtype, np.number)
+                ]
 
             # check if raw data variables are still available after pruning
-            if rawdata_var_names.size > 0:
+            if rawdata_var_names:
                 # render plot controls
                 render_rawdata_controls(
                     record_options=record_names,
-                    var_options=list(rawdata_var_names),
+                    var_options=rawdata_var_names,
                 )
                 # get indices for record names
                 record_indices_in_file: list[int] = get_record_indices(record_names)
@@ -410,3 +408,7 @@ def get_record_indices(record_names: list[str]) -> list[int]:
     )
     record_indices_in_file = [chunk_indices_in_file[i] for i in record_indices_in_chunk]
     return record_indices_in_file
+
+
+def get_group_members(group: h5py.Group) -> list[str]:
+    return list(group.keys())
