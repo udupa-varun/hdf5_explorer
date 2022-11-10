@@ -108,7 +108,7 @@ def plot_health_single(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
     max_health_val: float = 0.0
     for health_component in health_df:
         # compute trace
-        trace = go.Scatter(
+        trace = go.Scattergl(
             x=datetime_chunk,
             y=health_df[health_component],
             name=health_component,
@@ -145,7 +145,7 @@ def plot_health_separate(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
         # init figure
         fig = go.Figure()
         # compute trace
-        trace = go.Scatter(
+        trace = go.Scattergl(
             x=datetime_chunk,
             y=health_df[health_component],
             name=health_component,
@@ -237,7 +237,7 @@ def plot_features_single(feature_df: pd.DataFrame):
     # plot selected features on figure
     for feat in st.session_state["feat_y"]:
         # compute trace
-        trace = go.Scatter(
+        trace = go.Scattergl(
             x=feature_df[xvar_label] if xvar_label != "Index" else None,
             y=feature_df[feat],
             name=feat,
@@ -271,7 +271,7 @@ def plot_features_separate(feature_df: pd.DataFrame):
         # init figure
         fig = go.Figure()
         # compute trace
-        trace = go.Scatter(
+        trace = go.Scattergl(
             x=feature_df[xvar_label] if xvar_label != "Index" else None,
             y=feature_df[feat],
             name=feat,
@@ -364,7 +364,7 @@ def plot_rawdata(
                 rawdata_group[xvar_label][record_idx] if xvar_label != "Index" else None
             )
             ydata = rawdata_group[yvar_label][record_idx]
-            trace = go.Scatter(
+            trace = go.Scattergl(
                 x=xdata,
                 y=ydata,
                 name=trace_labels[inner_idx],
