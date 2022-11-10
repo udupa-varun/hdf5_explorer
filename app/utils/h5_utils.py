@@ -5,11 +5,12 @@ import numpy as np
 
 CHUNK_SIZE = int(1e4)
 
-FILE_EXTS = [".hdf5", ".h5"]
+FILE_EXTS = ["hdf5", "h5"]
 
 
 def search_for_datafiles(dir_path: Path) -> list[Path]:
-    """searches given path for datafiles of valid types
+    """searches given path for datafiles with valid file extensions.
+    Does not search recursively.
 
     :param dir_path: input directory path
     :type dir_path: pathlib.Path
@@ -18,9 +19,9 @@ def search_for_datafiles(dir_path: Path) -> list[Path]:
     """
     file_paths = []
 
-    file_paths = list(
-        p.resolve() for p in dir_path.glob("**/*") if p.suffix in FILE_EXTS
-    )
+    for file_ext in FILE_EXTS:
+        file_paths.extend([p.resolve() for p in dir_path.glob(f"./*.{file_ext}")])
+
     return file_paths
 
 

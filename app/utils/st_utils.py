@@ -63,7 +63,7 @@ def render_dataset_controls():
         label="Search Directory Path:",
         value="./data",
         key="dir_path",
-        disabled=True,
+        # disabled=True,
     )
     search_path = Path(dir_path).resolve()
 
@@ -246,7 +246,7 @@ def update_main_panel():
 
                 plotting.plot_health(health_df, datetime_chunk)
             else:
-                st.warning("No health components detected.")
+                st.warning("No health components detected.", icon="⚠️")
 
         # Features Tab
         with tab_features:
@@ -277,7 +277,7 @@ def update_main_panel():
                 with subtab_table:
                     plotting.display_feature_table(feature_df)
             else:
-                st.warning("No features detected.")
+                st.warning("No features detected.", icon="⚠️")
 
         # Raw Data Tab
         with tab_rawdata:
@@ -341,7 +341,7 @@ def update_main_panel():
                     chart_by_var,
                 )
             else:
-                st.warning("No raw data available.")
+                st.warning("No raw data available.", icon="⚠️")
 
         # Metadata Tab
         with tab_metadata:
