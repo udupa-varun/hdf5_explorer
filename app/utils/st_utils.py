@@ -203,7 +203,6 @@ def update_main_panel():
 
         # read from H5 file
         file_obj: h5py.File = h5_utils.read_file(file_path)
-        st.session_state["file_path_loaded"] = Path(file_obj.filename).resolve()
 
         # get timestamp dataset
         timestamp_dset: h5py.Dataset = file_obj[task]["timestamps"]

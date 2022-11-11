@@ -7,6 +7,11 @@ import streamlit as st
 # ----------------
 # Generic/Common
 # ----------------
+
+# max number of markers per chart
+# if exceeded, figure will force line charts
+MAX_MARKERS_PER_FIGURE = int(1e4)
+
 # default colors for health thresholds
 DEFAULT_WARNING_COLOR = "#FFA500"
 DEFAULT_ALARM_COLOR = "#FF0000"
@@ -40,7 +45,9 @@ def update_figure(fig: go.Figure) -> go.Figure:
     :return: updated plotly figure object.
     :rtype: go.Figure
     """
+    # hover label precision
     fig.update_traces(hovertemplate="%{y:.4g}")
+    # title and legend updates
     fig.update_layout(
         title_x=0.5,
         showlegend=True,
@@ -53,6 +60,7 @@ def update_figure(fig: go.Figure) -> go.Figure:
         ),
         hovermode="x unified",
     )
+    # updates for X axis
     fig.update_layout(
         xaxis_showline=True,
         xaxis_mirror="ticks",
@@ -61,7 +69,7 @@ def update_figure(fig: go.Figure) -> go.Figure:
         xaxis_ticklen=5,
         xaxis_tickwidth=1,
     )
-
+    # updates for Y axis
     fig.update_layout(
         yaxis_showline=True,
         yaxis_mirror="ticks",
@@ -70,6 +78,49 @@ def update_figure(fig: go.Figure) -> go.Figure:
         yaxis_ticklen=5,
         yaxis_tickwidth=1,
     )
+    # updates for marker-based performance
+    fig = handle_marker_safety(fig)
+
+    return fig
+
+
+def handle_marker_safety(fig: go.Figure) -> go.Figure:
+    """checks the supplied figure to ensure plotting
+    large number of data points is handled safely.
+
+    :param fig: input figure
+    :type fig: go.Figure
+    :return: modified figure that is (hopefully) more performant
+    :rtype: go.Figure
+    """
+    # get total number of data points in this figure
+    # note that this includes all traces for the current figure
+    num_data_points = np.sum(len(d["y"]) for d in fig["data"])
+    # TODO: better logic that accounts for X
+    # get chart type requested
+    chart_mode = fig["data"][0]["mode"]
+    # check if we are "marker-safe"
+    if num_data_points > MAX_MARKERS_PER_FIGURE:
+        # we are not marker-safe,
+        # so override chart type with a translucent line plot
+        # TODO: remove this warning? can get annoying for multiple figures
+        st.warning(
+            "Too many data points! Forcing a line chart and disabling hover labels."
+        )
+        fig.update_traces(
+            mode="lines",
+            opacity=0.3,
+        )
+        # also disable hover labels
+        fig.update_layout(hovermode=False)
+    # safe to add marker borders
+    elif "markers" in chart_mode:
+        fig.update_traces(
+            marker=dict(
+                size=10,
+                line=dict(width=1, color="DarkSlateGrey"),
+            )
+        )
 
     return fig
 
@@ -112,6 +163,7 @@ def plot_health_single(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
             x=datetime_chunk,
             y=health_df[health_component],
             name=health_component,
+            mode="lines",
         )
         # add trace to figure
         fig.add_trace(trace)
@@ -149,6 +201,7 @@ def plot_health_separate(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
             x=datetime_chunk,
             y=health_df[health_component],
             name=health_component,
+            mode="lines",
         )
         # add trace to figure
         fig.add_trace(trace)
