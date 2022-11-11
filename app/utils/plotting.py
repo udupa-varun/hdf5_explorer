@@ -7,6 +7,11 @@ import streamlit as st
 # ----------------
 # Generic/Common
 # ----------------
+
+# max number of markers per chart
+# if exceeded, figure will force line charts
+MAX_MARKERS_PER_FIGURE = int(1e4)
+
 # default colors for health thresholds
 DEFAULT_WARNING_COLOR = "#FFA500"
 DEFAULT_ALARM_COLOR = "#FF0000"
@@ -40,7 +45,9 @@ def update_figure(fig: go.Figure) -> go.Figure:
     :return: updated plotly figure object.
     :rtype: go.Figure
     """
+    # hover label precision
     fig.update_traces(hovertemplate="%{y:.4g}")
+    # title and legend updates
     fig.update_layout(
         title_x=0.5,
         showlegend=True,
@@ -53,6 +60,7 @@ def update_figure(fig: go.Figure) -> go.Figure:
         ),
         hovermode="x unified",
     )
+    # updates for X axis
     fig.update_layout(
         xaxis_showline=True,
         xaxis_mirror="ticks",
@@ -61,7 +69,7 @@ def update_figure(fig: go.Figure) -> go.Figure:
         xaxis_ticklen=5,
         xaxis_tickwidth=1,
     )
-
+    # updates for Y axis
     fig.update_layout(
         yaxis_showline=True,
         yaxis_mirror="ticks",
@@ -70,8 +78,68 @@ def update_figure(fig: go.Figure) -> go.Figure:
         yaxis_ticklen=5,
         yaxis_tickwidth=1,
     )
+    # updates for marker-based performance
+    fig = handle_marker_safety(fig)
 
     return fig
+
+
+def handle_marker_safety(fig: go.Figure) -> go.Figure:
+    """Checks the supplied figure to ensure plotting
+    large number of data points is handled safely.
+
+    :param fig: input figure
+    :type fig: go.Figure
+    :return: modified figure that is (hopefully) more performant
+    :rtype: go.Figure
+    """
+    num_data_points = get_data_point_count(fig)
+
+    # get chart type requested
+    chart_mode = fig["data"][0]["mode"]
+    # check if we are "marker-safe"
+    if num_data_points > MAX_MARKERS_PER_FIGURE:
+        # we are not marker-safe,
+        # so override chart type with a translucent line plot
+        # TODO: remove this warning? can get annoying for multiple figures
+        st.warning(
+            "Too many data points! Forcing a line chart and disabling hover labels."
+        )
+        fig.update_traces(
+            mode="lines",
+            opacity=0.3,
+        )
+        # also disable hover labels
+        fig.update_layout(hovermode=False)
+    # safe to add marker borders
+    elif "markers" in chart_mode:
+        fig.update_traces(
+            marker=dict(
+                size=10,
+                line=dict(width=1, color="DarkSlateGrey"),
+            )
+        )
+
+    return fig
+
+
+def get_data_point_count(fig: go.Figure) -> int:
+    """Get total number of data points in supplied figure.
+    Note that this includes all traces for the current figure.
+    Assumes a common X axis for all traces.
+
+    :param fig: figure to be inspected
+    :type fig: go.Figure
+    :return: number of data points present in figure data
+    :rtype: int
+    """
+    num_data_points: int = 0
+    # get from X data when possible as shorter X can truncate Y
+    # sometimes X data is not present (Index) so use Y data instead
+    axis = "x" if fig["data"][0]["x"] is not None else "y"
+    num_data_points += np.sum(len(d[axis]) for d in fig["data"])
+
+    return num_data_points
 
 
 # ----------------
@@ -108,10 +176,11 @@ def plot_health_single(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
     max_health_val: float = 0.0
     for health_component in health_df:
         # compute trace
-        trace = go.Scatter(
+        trace = go.Scattergl(
             x=datetime_chunk,
             y=health_df[health_component],
             name=health_component,
+            mode="lines",
         )
         # add trace to figure
         fig.add_trace(trace)
@@ -145,10 +214,11 @@ def plot_health_separate(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
         # init figure
         fig = go.Figure()
         # compute trace
-        trace = go.Scatter(
+        trace = go.Scattergl(
             x=datetime_chunk,
             y=health_df[health_component],
             name=health_component,
+            mode="lines",
         )
         # add trace to figure
         fig.add_trace(trace)
@@ -237,7 +307,7 @@ def plot_features_single(feature_df: pd.DataFrame):
     # plot selected features on figure
     for feat in st.session_state["feat_y"]:
         # compute trace
-        trace = go.Scatter(
+        trace = go.Scattergl(
             x=feature_df[xvar_label] if xvar_label != "Index" else None,
             y=feature_df[feat],
             name=feat,
@@ -271,7 +341,7 @@ def plot_features_separate(feature_df: pd.DataFrame):
         # init figure
         fig = go.Figure()
         # compute trace
-        trace = go.Scatter(
+        trace = go.Scattergl(
             x=feature_df[xvar_label] if xvar_label != "Index" else None,
             y=feature_df[feat],
             name=feat,
@@ -364,7 +434,7 @@ def plot_rawdata(
                 rawdata_group[xvar_label][record_idx] if xvar_label != "Index" else None
             )
             ydata = rawdata_group[yvar_label][record_idx]
-            trace = go.Scatter(
+            trace = go.Scattergl(
                 x=xdata,
                 y=ydata,
                 name=trace_labels[inner_idx],
