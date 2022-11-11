@@ -85,7 +85,7 @@ def update_figure(fig: go.Figure) -> go.Figure:
 
 
 def handle_marker_safety(fig: go.Figure) -> go.Figure:
-    """checks the supplied figure to ensure plotting
+    """Checks the supplied figure to ensure plotting
     large number of data points is handled safely.
 
     :param fig: input figure
@@ -93,10 +93,8 @@ def handle_marker_safety(fig: go.Figure) -> go.Figure:
     :return: modified figure that is (hopefully) more performant
     :rtype: go.Figure
     """
-    # get total number of data points in this figure
-    # note that this includes all traces for the current figure
-    num_data_points = np.sum(len(d["y"]) for d in fig["data"])
-    # TODO: better logic that accounts for X
+    num_data_points = get_data_point_count(fig)
+
     # get chart type requested
     chart_mode = fig["data"][0]["mode"]
     # check if we are "marker-safe"
@@ -123,6 +121,25 @@ def handle_marker_safety(fig: go.Figure) -> go.Figure:
         )
 
     return fig
+
+
+def get_data_point_count(fig: go.Figure) -> int:
+    """Get total number of data points in supplied figure.
+    Note that this includes all traces for the current figure.
+    Assumes a common X axis for all traces.
+
+    :param fig: figure to be inspected
+    :type fig: go.Figure
+    :return: number of data points present in figure data
+    :rtype: int
+    """
+    num_data_points: int = 0
+    # get from X data when possible as shorter X can truncate Y
+    # sometimes X data is not present (Index) so use Y data instead
+    axis = "x" if fig["data"][0]["x"] is not None else "y"
+    num_data_points += np.sum(len(d[axis]) for d in fig["data"])
+
+    return num_data_points
 
 
 # ----------------
