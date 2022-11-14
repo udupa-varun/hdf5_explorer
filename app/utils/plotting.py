@@ -1,12 +1,17 @@
 import h5py
 import numpy as np
 import pandas as pd
+import plotly
 import plotly.graph_objects as go
 import streamlit as st
+from plotly.subplots import make_subplots
 
 # ----------------
 # Generic/Common
 # ----------------
+
+CHART_HEIGHT = 450
+PLOTLY_COLORS = plotly.colors.qualitative.Plotly
 
 # max number of markers per chart
 # if exceeded, figure will force line charts
@@ -39,6 +44,7 @@ chart_config = {
 
 def update_figure(fig: go.Figure) -> go.Figure:
     """Layout updates to be applied to ALL figures generated.
+    Any updates specific to a tab do not belong here.
 
     :param fig: plotly figure object to be updated.
     :type fig: go.Figure
@@ -61,22 +67,25 @@ def update_figure(fig: go.Figure) -> go.Figure:
         hovermode="x unified",
     )
     # updates for X axis
-    fig.update_layout(
-        xaxis_showline=True,
-        xaxis_mirror="ticks",
-        xaxis_linewidth=1,
-        xaxis_ticks="inside",
-        xaxis_ticklen=5,
-        xaxis_tickwidth=1,
+    fig.update_xaxes(
+        showline=True,
+        mirror=True,
+        linewidth=1,
+        ticks="outside",
+        ticklen=5,
+        tickwidth=1,
+        showticklabels=True,
     )
     # updates for Y axis
-    fig.update_layout(
-        yaxis_showline=True,
-        yaxis_mirror="ticks",
-        yaxis_linewidth=1,
-        yaxis_ticks="inside",
-        yaxis_ticklen=5,
-        yaxis_tickwidth=1,
+    fig.update_yaxes(
+        showline=True,
+        mirror=True,
+        linewidth=1,
+        ticks="outside",
+        ticklen=5,
+        tickwidth=1,
+        showticklabels=True,
+        title="Value",
     )
     # updates for marker-based performance
     fig = handle_marker_safety(fig)
@@ -147,97 +156,154 @@ def get_data_point_count(fig: go.Figure) -> int:
 # ----------------
 
 
-def plot_health(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
+def plot_health(
+    health_df: pd.DataFrame, contrib_df: pd.DataFrame, datetime_chunk: np.ndarray
+):
     """Plots one or more charts for the health tab.
 
     :param health_df: dataframe with health values.
     :type health_df: pd.DataFrame
+    :param contrib_df: dataframe with contribution values.
+    :type contrib_df: pd.DataFrame
     :param datetime_chunk: array of record timestamps
     :type datetime_chunk: np.ndarray
     """
     separate_charts = st.session_state["separate_health_charts"]
 
     if separate_charts:
-        plot_health_separate(health_df, datetime_chunk)
+        plot_health_separate(health_df, contrib_df, datetime_chunk)
     else:
-        plot_health_single(health_df, datetime_chunk)
+        plot_health_single(health_df, contrib_df, datetime_chunk)
 
 
-def plot_health_single(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
+def plot_health_single(
+    health_df: pd.DataFrame, contrib_df: pd.DataFrame, datetime_chunk: np.ndarray
+):
     """Plots a single health chart with all the selected health components.
 
     :param health_df: dataframe with health values.
     :type health_df: pd.DataFrame
+    :param contrib_df: dataframe with contribution values.
+    :type contrib_df: pd.DataFrame
     :param datetime_chunk: array of record timestamps
     :type datetime_chunk: np.ndarray
     """
     # init figure
-    fig = go.Figure()
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=True,
+        row_heights=[3, 1],
+        subplot_titles=["Health Index", "Contributions"],
+        # x_title="Timestamp",
+    )
     max_health_val: float = 0.0
-    for health_component in health_df:
+    for (h_idx, component) in enumerate(health_df.columns):
         # compute trace
-        trace = go.Scattergl(
+        h_trace = go.Scattergl(
             x=datetime_chunk,
-            y=health_df[health_component],
-            name=health_component,
+            y=health_df[component],
+            name=component,
             mode="lines",
+            # line=dict(color=PLOTLY_COLORS[h_idx]),
         )
-        # add trace to figure
-        fig.add_trace(trace)
+        # add trace to top subplot
+        fig.add_trace(h_trace, row=1, col=1)
         # store max value
-        max_health_val = max(max_health_val, max(health_df[health_component]))
+        max_health_val = max(max_health_val, max(health_df[component]))
+
+    for (c_idx, contrib) in enumerate(st.session_state["health_contributions"]):
+        # compute trace
+        c_trace = go.Scattergl(
+            x=datetime_chunk,
+            y=contrib_df[contrib],
+            name=contrib,
+            mode="lines",
+            # line=dict(color=PLOTLY_COLORS[c_idx]),
+        )
+        # add trace to bottom subplot
+        fig.add_trace(c_trace, row=2, col=1)
     # common updates to figure
     fig = update_figure(fig)
-
-    fig = plot_threshold_lines(fig, max_health_val=max_health_val)
+    fig = plot_threshold_lines(fig, max_health_val=max_health_val, row=1)
     # specific updates to figure
     fig.update_layout(
         title_x=0.5,
-        title_text="Health Index",
-        xaxis_title="Timestamp",
-        yaxis_title="Value",
+        title_text="Multiple Components",
+        yaxis2_showgrid=False,  # special case for contrib
         showlegend=True,
+        height=int(CHART_HEIGHT * 1.2),
     )
+
     # render figure in app
     st.plotly_chart(fig, use_container_width=True, config=chart_config)
 
 
-def plot_health_separate(health_df: pd.DataFrame, datetime_chunk: np.ndarray):
+def plot_health_separate(
+    health_df: pd.DataFrame, contrib_df: pd.DataFrame, datetime_chunk: np.ndarray
+):
     """Plots multiple health charts, one for each selected health component.
 
     :param health_df: dataframe with health values.
     :type health_df: pd.DataFrame
+    :param contrib_df: dataframe with contribution values.
+    :type contrib_df: pd.DataFrame
     :param datetime_chunk: array of record timestamps
     :type datetime_chunk: np.ndarray
     """
-    for health_component in health_df:
+    for (h_idx, component) in enumerate(health_df.columns):
         # init figure
-        fig = go.Figure()
-        # compute trace
-        trace = go.Scattergl(
-            x=datetime_chunk,
-            y=health_df[health_component],
-            name=health_component,
-            mode="lines",
+        fig = make_subplots(
+            rows=2,
+            cols=1,
+            shared_xaxes=True,
+            row_heights=[3, 1],
+            subplot_titles=["Health Index", "Contributions"],
+            # x_title="Timestamp",
         )
-        # add trace to figure
-        fig.add_trace(trace)
+        # compute trace
+        h_trace = go.Scattergl(
+            x=datetime_chunk,
+            y=health_df[component],
+            name=component,
+            mode="lines",
+            # line=dict(color=PLOTLY_COLORS[h_idx]),
+        )
+        # add trace to top subplot
+        fig.add_trace(h_trace, row=1, col=1)
+        for (c_idx, contrib) in enumerate(st.session_state["health_contributions"]):
+            # TODO: filter for relevant contributions
+            # compute trace
+            c_trace = go.Scattergl(
+                x=datetime_chunk,
+                y=contrib_df[contrib],
+                name=contrib,
+                mode="lines",
+                # line=dict(color=PLOTLY_COLORS[c_idx]),
+            )
+            # add trace to bottom subplot
+            fig.add_trace(c_trace, row=2, col=1)
         # common updates to figure
         fig = update_figure(fig)
+
         # specific updates to figure
-        fig = plot_threshold_lines(fig, max_health_val=max(health_df[health_component]))
+        fig = plot_threshold_lines(fig, max_health_val=max(health_df[component]), row=1)
+
         fig.update_layout(
             title_x=0.5,
-            title_text=health_component,
-            xaxis_title="Timestamp",
-            yaxis_title="Health Index",
-            showlegend=False,
+            title_text=component,
+            yaxis2_showgrid=False,  # special case for contrib
+            showlegend=True,
+            height=int(CHART_HEIGHT * 1.2),
         )
+
         # render figure in app
         st.plotly_chart(fig, use_container_width=True, config=chart_config)
 
 
-def plot_threshold_lines(fig: go.Figure, max_health_val: float) -> go.Figure:
+def plot_threshold_lines(
+    fig: go.Figure, max_health_val: float, row: str = "all"
+) -> go.Figure:
     """Plots horizontal lines on the given figure object,
     based on the configured threshold controls.
 
@@ -248,6 +314,8 @@ def plot_threshold_lines(fig: go.Figure, max_health_val: float) -> go.Figure:
     :return: updated figure object
     :rtype: go.Figure
     """
+
+    row_arg = "all" if row == "all" else 1
     # get threshold values
     warn_val = st.session_state["health_warn_val"]
     alarm_val = st.session_state["health_alarm_val"]
@@ -263,15 +331,20 @@ def plot_threshold_lines(fig: go.Figure, max_health_val: float) -> go.Figure:
         line_width=4,
         line_dash="dash",
         line_color=DEFAULT_WARNING_COLOR,
+        row=row_arg,
     )
     fig.add_hline(
         y=alarm_val,
         line_width=4,
         line_dash="dash",
         line_color=DEFAULT_ALARM_COLOR,
+        row=row_arg,
     )
     # apply Y axis limits
-    fig.update_yaxes(range=[0, ylim])
+    fig.update_yaxes(
+        range=[0, ylim],
+        row=row_arg,
+    )
 
     return fig
 
@@ -302,7 +375,11 @@ def plot_features_single(feature_df: pd.DataFrame):
     :type feature_df: pd.DataFrame
     """
     # init figure
-    fig = go.Figure()
+    fig = make_subplots(
+        rows=1,
+        cols=1,
+        shared_xaxes=True,
+    )
     xvar_label = st.session_state["feat_x"]
     # plot selected features on figure
     for feat in st.session_state["feat_y"]:
@@ -320,11 +397,12 @@ def plot_features_single(feature_df: pd.DataFrame):
     # any specific updates to figure
     fig.update_layout(
         title_x=0.5,
-        title_text="Features",
+        title_text="Multiple Features",
         xaxis_title=xvar_label,
-        yaxis_title="Value",
         showlegend=True,
+        height=CHART_HEIGHT,
     )
+
     # render figure in app
     st.plotly_chart(fig, use_container_width=True, config=chart_config)
 
@@ -335,32 +413,43 @@ def plot_features_separate(feature_df: pd.DataFrame):
     :param feature_df: dataframe with feature values.
     :type feature_df: pd.DataFrame
     """
+
     xvar_label = st.session_state["feat_x"]
+    yvar_labels = st.session_state["feat_y"]
+    num_rows = len(yvar_labels)
+
+    # init figure
+    fig = make_subplots(
+        rows=num_rows,
+        cols=1,
+        shared_xaxes=True,
+        subplot_titles=yvar_labels,
+    )
     # plot selected features on figure
-    for feat in st.session_state["feat_y"]:
-        # init figure
-        fig = go.Figure()
+    for (row_idx, feat) in enumerate(yvar_labels):
         # compute trace
         trace = go.Scattergl(
             x=feature_df[xvar_label] if xvar_label != "Index" else None,
             y=feature_df[feat],
             name=feat,
             mode=chart_types[st.session_state["feat_charttype"]],
+            line=dict(color=PLOTLY_COLORS[0]),
         )
-        # add trace to figure
-        fig.add_trace(trace)
-        # common updates to figure
-        fig = update_figure(fig)
-        # any specific updates to figure
-        fig.update_layout(
-            title_x=0.5,
-            title_text=feat,
-            xaxis_title=xvar_label,
-            yaxis_title="Value",
-            showlegend=False,
-        )
-        # render figure in app
-        st.plotly_chart(fig, use_container_width=True, config=chart_config)
+        # add trace to subplot
+        fig.add_trace(trace, row=row_idx + 1, col=1)
+    # common updates to figure
+    fig = update_figure(fig)
+    # any specific updates to figure
+    fig.update_layout(
+        title_x=0.5,
+        title_text="Features",
+        showlegend=False,
+        height=CHART_HEIGHT * num_rows,
+    )
+    fig.update_xaxes(title=xvar_label)
+
+    # render figure in app
+    st.plotly_chart(fig, use_container_width=True, config=chart_config)
 
 
 def display_feature_table(df: pd.DataFrame):
@@ -377,10 +466,6 @@ def display_feature_table(df: pd.DataFrame):
         feat_table_data = df.head(FEAT_TABLE_ROW_LIMIT)
     st.dataframe(
         feat_table_data,
-        # feat_table_data.style.highlight_max(
-        #     axis="index",
-        #     color=FEAT_TABLE_HIGHLIGHT_COLOR,
-        # ),
         use_container_width=True,
         height=500,
     )
@@ -422,10 +507,16 @@ def plot_rawdata(
     :type chart_by_var: bool
     """
     xvar_label = st.session_state["rawdata_x"]
+    num_rows = len(outer_looper)
+    # init figure
+    fig = make_subplots(
+        rows=num_rows,
+        cols=1,
+        shared_xaxes=True,
+        subplot_titles=title_labels,
+    )
     # loop over each chart
     for (outer_idx, outer_var) in enumerate(outer_looper):
-        # init figure
-        fig = go.Figure()
         # loop over each trace in chart
         for (inner_idx, inner_var) in enumerate(inner_looper):
             yvar_label = outer_var if chart_by_var else inner_var
@@ -439,20 +530,26 @@ def plot_rawdata(
                 y=ydata,
                 name=trace_labels[inner_idx],
                 mode=chart_types[st.session_state["rawdata_charttype"]],
+                line=dict(color=PLOTLY_COLORS[inner_idx]),
             )
             # add trace to figure
-            fig.add_trace(trace)
+            fig.add_trace(
+                trace,
+                row=outer_idx + 1,
+                col=1,
+            )
 
-        # common updates to figure
-        fig = update_figure(fig)
-        # any specific updates to figure
-        fig.update_layout(
-            title_x=0.5,
-            title_text=title_labels[outer_idx],
-            xaxis_title=xvar_label,
-            yaxis_title="Value",
-            xaxis_hoverformat=".4g",
-            showlegend=True,
-        )
-        # render figure in app
-        st.plotly_chart(fig, use_container_width=True, config=chart_config)
+    # common updates to figure
+    fig = update_figure(fig)
+    # any specific updates to figure
+    fig.update_layout(
+        title_x=0.5,
+        title_text="Raw Data",
+        xaxis_hoverformat=".4g",
+        showlegend=False,
+        height=CHART_HEIGHT * num_rows,
+    )
+    fig.update_xaxes(title=xvar_label)
+
+    # render figure in app
+    st.plotly_chart(fig, use_container_width=True, config=chart_config)

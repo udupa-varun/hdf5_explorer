@@ -97,19 +97,28 @@ def render_xy_controls(
 # ----------------
 
 
-def render_health_controls(options: list[str]):
+def render_health_controls(options: list[str], contrib_options: list[str]):
     """Renders form controls for the health tab.
 
     :param options: list of health component labels in the selected task.
     :type options: list[str]
     """
     with st.form("health_form"):
-        st.multiselect(
-            label="Select Component(s):",
-            options=options,
-            default=options[0],
-            key="health_components",
-        )
+        (col_component, col_contrib) = st.columns(2)
+        with col_component:
+            st.multiselect(
+                label="Select Component(s):",
+                options=options,
+                default=options[0],
+                key="health_components",
+            )
+        with col_contrib:
+            st.multiselect(
+                label="Select Contribution(s):",
+                options=contrib_options,
+                default=contrib_options[0] if contrib_options else None,
+                key="health_contributions",
+            )
         (
             col_separate,
             col_warn_val,

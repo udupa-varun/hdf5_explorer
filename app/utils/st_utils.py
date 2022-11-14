@@ -233,17 +233,44 @@ def update_main_panel():
             health_component_names = get_group_members(health_group)
             # only proceed if health components are present
             if health_component_names:
+                health_contrib_names = []
+                for comp in health_component_names:
+                    if "contributions" in health_group[comp].keys():
+                        health_contrib_names.extend(
+                            list(
+                                get_dset_attribute(
+                                    health_group[comp]["contributions"], "names"
+                                )
+                            )
+                        )
+
                 # render plot controls
-                render_health_controls(options=health_component_names)
+                render_health_controls(
+                    options=health_component_names, contrib_options=health_contrib_names
+                )
 
                 # prepare dataframe
                 health_df = pd.DataFrame()
+                contrib_df = pd.DataFrame()
                 for health_component in st.session_state["health_components"]:
                     health_df[health_component] = health_group[health_component][
                         "health_values"
                     ][chunk_begin_idx:chunk_end_idx]
+                    if "contributions" in health_group[health_component].keys():
+                        contrib_chunk = health_group[health_component]["contributions"][
+                            chunk_begin_idx:chunk_end_idx
+                        ]
+                        contrib_df = pd.concat(
+                            [
+                                contrib_df,
+                                pd.DataFrame(
+                                    contrib_chunk, columns=health_contrib_names
+                                ),
+                            ],
+                            axis=1,
+                        )
 
-                plotting.plot_health(health_df, datetime_chunk)
+                plotting.plot_health(health_df, contrib_df, datetime_chunk)
             else:
                 st.warning("No health components detected.", icon="⚠️")
 
@@ -251,7 +278,7 @@ def update_main_panel():
         with tab_features:
             # prepare dataframe based on configured chunk
             feat_dset: h5py.Dataset = file_obj[task]["features"]
-            feature_names: np.ndarray = feat_dset.attrs["names"]
+            feature_names: np.ndarray = get_dset_attribute(feat_dset, "names")
             feature_chunk: np.ndarray = feat_dset[chunk_begin_idx:chunk_end_idx]
 
             # if features are present, load them into dataframe
@@ -301,7 +328,7 @@ def update_main_panel():
             if rawdata_var_names:
                 # render plot controls
                 render_rawdata_controls(
-                    record_options=record_names,
+                    record_options=list(record_names),
                     var_options=rawdata_var_names,
                 )
                 # get indices for record names
@@ -375,7 +402,7 @@ def get_metadata_chunk(meta_dset: h5py.Dataset) -> pd.DataFrame:
     # create dataframe for display
     meta_df = pd.DataFrame(
         meta_formatted,
-        columns=meta_dset.attrs["names"],
+        columns=get_dset_attribute(meta_dset, "names"),
     )
     return meta_df
 
@@ -411,3 +438,7 @@ def get_record_indices(record_names: list[str]) -> list[int]:
 
 def get_group_members(group: h5py.Group) -> list[str]:
     return list(group.keys())
+
+
+def get_dset_attribute(dset: h5py.Dataset, attr_name) -> list[str]:
+    return dset.attrs.get(attr_name, None)
