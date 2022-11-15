@@ -102,6 +102,10 @@ def handle_marker_safety(fig: go.Figure) -> go.Figure:
     :return: modified figure that is (hopefully) more performant
     :rtype: go.Figure
     """
+    # exit if figure has no data
+    if not fig["data"]:
+        return fig
+
     num_data_points = get_data_point_count(fig)
 
     # get chart type requested
@@ -143,6 +147,7 @@ def get_data_point_count(fig: go.Figure) -> int:
     :rtype: int
     """
     num_data_points: int = 0
+
     # get from X data when possible as shorter X can truncate Y
     # sometimes X data is not present (Index) so use Y data instead
     axis = "x" if fig["data"][0]["x"] is not None else "y"
@@ -194,10 +199,12 @@ def plot_health_single(
         cols=1,
         shared_xaxes=True,
         row_heights=[3, 1],
-        subplot_titles=["Health Index", "Contributions"],
+        # subplot_titles=["Health Index", "Contributions"],
         # x_title="Timestamp",
     )
     max_health_val: float = 0.0
+
+    # loop over selected health components
     for (h_idx, component) in enumerate(health_df.columns):
         # compute trace
         h_trace = go.Scattergl(
@@ -212,7 +219,13 @@ def plot_health_single(
         # store max value
         max_health_val = max(max_health_val, max(health_df[component]))
 
-    for (c_idx, contrib) in enumerate(st.session_state["health_contributions"]):
+    selected_contribs = st.session_state["health_contributions"]
+    # filter for relevant contributions
+    relevant_contribs = [
+        c for c in selected_contribs if c.split("|")[0] in health_df.columns
+    ]
+    # loop over selected health contributions
+    for (c_idx, contrib) in enumerate(relevant_contribs):
         # compute trace
         c_trace = go.Scattergl(
             x=datetime_chunk,
@@ -230,9 +243,14 @@ def plot_health_single(
     fig.update_layout(
         title_x=0.5,
         title_text="Multiple Components",
-        yaxis2_showgrid=False,  # special case for contrib
         showlegend=True,
         height=int(CHART_HEIGHT * 1.2),
+    )
+    # any axis property overrides
+    fig.update_layout(
+        yaxis_title="Health Index",
+        yaxis2_showgrid=False,  # special case for contrib
+        yaxis2_title="Contributions",
     )
 
     # render figure in app
@@ -258,7 +276,7 @@ def plot_health_separate(
             cols=1,
             shared_xaxes=True,
             row_heights=[3, 1],
-            subplot_titles=["Health Index", "Contributions"],
+            # subplot_titles=["Health Index", "Contributions"],
             # x_title="Timestamp",
         )
         # compute trace
@@ -271,8 +289,15 @@ def plot_health_separate(
         )
         # add trace to top subplot
         fig.add_trace(h_trace, row=1, col=1)
-        for (c_idx, contrib) in enumerate(st.session_state["health_contributions"]):
-            # TODO: filter for relevant contributions
+
+        # get selected contributions
+        selected_contribs = st.session_state["health_contributions"]
+        # filter for relevant contributions
+        relevant_contribs = [
+            c for c in selected_contribs if c.split("|")[0] == component
+        ]
+        # loop over relevant health contributions
+        for (c_idx, contrib) in enumerate(relevant_contribs):
             # compute trace
             c_trace = go.Scattergl(
                 x=datetime_chunk,
@@ -283,6 +308,9 @@ def plot_health_separate(
             )
             # add trace to bottom subplot
             fig.add_trace(c_trace, row=2, col=1)
+
+        # TODO: if there are no relevant contributions, can the empty subplot be removed?
+
         # common updates to figure
         fig = update_figure(fig)
 
@@ -292,9 +320,14 @@ def plot_health_separate(
         fig.update_layout(
             title_x=0.5,
             title_text=component,
-            yaxis2_showgrid=False,  # special case for contrib
             showlegend=True,
             height=int(CHART_HEIGHT * 1.2),
+        )
+        # any axis property overrides
+        fig.update_layout(
+            yaxis_title="Health Index",
+            yaxis2_showgrid=False,  # special case for contrib
+            yaxis2_title="Contributions",
         )
 
         # render figure in app
@@ -531,6 +564,10 @@ def plot_rawdata(
                 name=trace_labels[inner_idx],
                 mode=chart_types[st.session_state["rawdata_charttype"]],
                 line=dict(color=PLOTLY_COLORS[inner_idx]),
+                # only show legends for the top subplot because
+                # colors are same across subplots and
+                # legend is specific to figure, not subplot
+                showlegend=True if outer_idx == 0 else False,
             )
             # add trace to figure
             fig.add_trace(
@@ -546,7 +583,6 @@ def plot_rawdata(
         title_x=0.5,
         title_text="Raw Data",
         xaxis_hoverformat=".4g",
-        showlegend=False,
         height=CHART_HEIGHT * num_rows,
     )
     fig.update_xaxes(title=xvar_label)

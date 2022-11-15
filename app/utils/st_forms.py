@@ -118,6 +118,7 @@ def render_health_controls(options: list[str], contrib_options: list[str]):
                 options=contrib_options,
                 default=contrib_options[0] if contrib_options else None,
                 key="health_contributions",
+                help="Related components must be selected for contributions to show.",
             )
         (
             col_separate,

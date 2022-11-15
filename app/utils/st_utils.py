@@ -233,42 +233,48 @@ def update_main_panel():
             health_component_names = get_group_members(health_group)
             # only proceed if health components are present
             if health_component_names:
-                health_contrib_names = []
-                for comp in health_component_names:
-                    if "contributions" in health_group[comp].keys():
-                        health_contrib_names.extend(
-                            list(
-                                get_dset_attribute(
-                                    health_group[comp]["contributions"], "names"
-                                )
+                # init dataframe for contributions
+                health_contribs = []
+                contrib_df = pd.DataFrame()
+                # loop over health components present in selected file
+                for health_component in health_component_names:
+                    if "contributions" in health_group[health_component].keys():
+                        component_contribs = list(
+                            get_dset_attribute(
+                                health_group[health_component]["contributions"],
+                                "names",
                             )
                         )
+                        # hack that adds component name to contribution label
+                        component_contribs = [
+                            f"{health_component}|{c}" for c in component_contribs
+                        ]
+                        health_contribs.extend(component_contribs)
 
-                # render plot controls
-                render_health_controls(
-                    options=health_component_names, contrib_options=health_contrib_names
-                )
-
-                # prepare dataframe
-                health_df = pd.DataFrame()
-                contrib_df = pd.DataFrame()
-                for health_component in st.session_state["health_components"]:
-                    health_df[health_component] = health_group[health_component][
-                        "health_values"
-                    ][chunk_begin_idx:chunk_end_idx]
-                    if "contributions" in health_group[health_component].keys():
+                        # get contribution data for this component
                         contrib_chunk = health_group[health_component]["contributions"][
                             chunk_begin_idx:chunk_end_idx
                         ]
-                        contrib_df = pd.concat(
-                            [
-                                contrib_df,
-                                pd.DataFrame(
-                                    contrib_chunk, columns=health_contrib_names
-                                ),
-                            ],
-                            axis=1,
+                        contrib_chunk_df = pd.DataFrame(
+                            contrib_chunk,
+                            columns=health_contribs,
                         )
+                        # add contributions to the dataframe
+                        contrib_df = pd.concat([contrib_df, contrib_chunk_df], axis=1)
+
+                # render plot controls
+                render_health_controls(
+                    options=health_component_names, contrib_options=health_contribs
+                )
+
+                # init dataframe for health values
+                health_df = pd.DataFrame()
+                # loop over selected health components
+                selected_health_components = st.session_state["health_components"]
+                for health_component in selected_health_components:
+                    health_df[health_component] = health_group[health_component][
+                        "health_values"
+                    ][chunk_begin_idx:chunk_end_idx]
 
                 plotting.plot_health(health_df, contrib_df, datetime_chunk)
             else:
