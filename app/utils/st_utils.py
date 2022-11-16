@@ -69,7 +69,8 @@ def render_dataset_controls():
 
     # if the directory does not exist, create one
     if not search_path.is_dir():
-        search_path.mkdir()
+        st.error("Directory does not exist.", icon="🚨")
+        st.stop()
 
     # get files from directory path
     file_paths: list[Path] = h5_utils.search_for_datafiles(search_path)
@@ -94,7 +95,7 @@ def render_dataset_controls():
             st.error(
                 "No groups were found in the data file. "
                 "This probably isn't a valid PDX H5 file!",
-                icon="⚠️",
+                icon="🚨",
             )
             st.stop()
 
@@ -109,7 +110,8 @@ def render_dataset_controls():
             if list(file_obj[selected_task].attrs.keys()) != TASK_ATTRS:
                 st.error(
                     "Selected group does not have the expected DAQ Task attributes. "
-                    "This probably isn't a valid PDX DAQ task!"
+                    "This probably isn't a valid PDX DAQ task!",
+                    icon="🚨",
                 )
                 st.stop()
 
@@ -224,7 +226,7 @@ def update_main_panel():
 
         # stop if there are no records in the configured range
         if meta_df.empty:
-            st.error("No records in the selected range!")
+            st.error("No records in the selected range!", icon="🚨")
             st.stop()
 
         # Health Tab
@@ -359,7 +361,7 @@ def update_main_panel():
                     title_labels = selected_record_names
                     chart_by_var: bool = False
                 else:
-                    st.error("Well this is unexpected...")
+                    st.error("Well this is unexpected...", icon="🚨")
                     st.stop()
 
                 plotting.plot_rawdata(

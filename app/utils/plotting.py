@@ -354,7 +354,7 @@ def plot_threshold_lines(
     alarm_val = st.session_state["health_alarm_val"]
     # check if threshold values are playing nice
     if warn_val >= alarm_val:
-        st.error("Warning Threshold must be less than Alarm Threshold!")
+        st.error("Warning Threshold must be less than Alarm Threshold!", icon="🚨")
         st.stop()
     # compute Y Axis upper limit
     ylim = max(alarm_val + 0.5, max_health_val)
@@ -495,7 +495,9 @@ def display_feature_table(df: pd.DataFrame):
     feat_table_data = df
     total_row_count = df.shape[0]
     if total_row_count > FEAT_TABLE_ROW_LIMIT:
-        st.warning(f"Limiting table to the first {FEAT_TABLE_ROW_LIMIT} rows.")
+        st.warning(
+            f"Limiting table to the first {FEAT_TABLE_ROW_LIMIT} rows.", icon="⚠️"
+        )
         feat_table_data = df.head(FEAT_TABLE_ROW_LIMIT)
     st.dataframe(
         feat_table_data,
