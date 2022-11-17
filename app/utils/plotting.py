@@ -211,7 +211,7 @@ def plot_health_single(
             x=datetime_chunk,
             y=health_df[component],
             name=component,
-            mode="lines",
+            mode=chart_types[st.session_state["health_charttype"]],
             # line=dict(color=PLOTLY_COLORS[h_idx]),
         )
         # add trace to top subplot
@@ -231,7 +231,7 @@ def plot_health_single(
             x=datetime_chunk,
             y=contrib_df[contrib],
             name=contrib,
-            mode="lines",
+            mode=chart_types[st.session_state["health_charttype"]],
             # line=dict(color=PLOTLY_COLORS[c_idx]),
         )
         # add trace to bottom subplot
@@ -284,7 +284,7 @@ def plot_health_separate(
             x=datetime_chunk,
             y=health_df[component],
             name=component,
-            mode="lines",
+            mode=chart_types[st.session_state["health_charttype"]],
             # line=dict(color=PLOTLY_COLORS[h_idx]),
         )
         # add trace to top subplot
@@ -303,7 +303,7 @@ def plot_health_separate(
                 x=datetime_chunk,
                 y=contrib_df[contrib],
                 name=contrib,
-                mode="lines",
+                mode=chart_types[st.session_state["health_charttype"]],
                 # line=dict(color=PLOTLY_COLORS[c_idx]),
             )
             # add trace to bottom subplot

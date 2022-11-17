@@ -104,7 +104,7 @@ def render_health_controls(options: list[str], contrib_options: list[str]):
     :type options: list[str]
     """
     with st.form("health_form"):
-        (col_component, col_contrib) = st.columns(2)
+        (col_component, col_contrib, col_chart) = st.columns([4, 4, 2])
         with col_component:
             st.multiselect(
                 label="Select Component(s):",
@@ -119,6 +119,13 @@ def render_health_controls(options: list[str], contrib_options: list[str]):
                 default=contrib_options[0] if contrib_options else None,
                 key="health_contributions",
                 help="Related components must be selected for contributions to show.",
+            )
+        with col_chart:
+            st.selectbox(
+                label="Chart Type:",
+                options=list(plotting.chart_types.keys()),
+                index=1,
+                key="health_charttype",
             )
         (
             col_separate,
