@@ -231,67 +231,27 @@ def update_main_panel():
 
         # Health Tab
         with tab_health:
+            # set up reference to task health
             health_group: h5py.Group = file_obj[task]["health"]
             health_component_names = get_group_members(health_group)
+
             # only proceed if health components are present
             if health_component_names:
-                # init dataframe for contributions
-                health_contribs = []
-                contrib_df = pd.DataFrame()
-                # loop over health components present in selected file
-                for health_component in health_component_names:
-                    # check if this component has contributions present
-                    if "contributions" in health_group[health_component].keys():
-                        # get contribution labels from file
-                        component_contribs = list(
-                            get_obj_attribute(
-                                health_group[health_component]["contributions"],
-                                "names",
-                            )
-                        )
-                        # hack that adds component name to contribution label
-                        component_contribs = [
-                            f"{health_component}|{c}" for c in component_contribs
-                        ]
-                        health_contribs.extend(component_contribs)
-
-                        # get contribution data for this component
-                        contrib_chunk = health_group[health_component]["contributions"][
-                            chunk_begin_idx:chunk_end_idx
-                        ]
-                        contrib_chunk_df = pd.DataFrame(
-                            contrib_chunk,
-                            columns=health_contribs,
-                        )
-                        # add contributions to the dataframe
-                        contrib_df = pd.concat([contrib_df, contrib_chunk_df], axis=1)
+                # store contribution data and labels
+                (contrib_df, health_contrib_labels) = get_contribution_data(
+                    health_group, health_component_names
+                )
 
                 # render plot controls
                 render_health_controls(
-                    options=health_component_names, contrib_options=health_contribs
+                    options=health_component_names,
+                    contrib_options=health_contrib_labels,
                 )
 
-                # init dataframe for health values
-                health_df = pd.DataFrame()
-                thresh_store = {}
-                # loop over selected health components
-                selected_health_components = st.session_state["health_components"]
-                for health_component in selected_health_components:
-                    # store health values
-                    health_df[health_component] = health_group[health_component][
-                        "health_values"
-                    ][chunk_begin_idx:chunk_end_idx]
-                    # store health thresholds
-                    threshold_values = get_obj_attribute(
-                        health_group[health_component], "thresholds"
-                    )
-                    # store with default values in case they are missing
-                    if threshold_values is not None:
-                        threshold_values = list(threshold_values)
-                    else:
-                        threshold_values = [1.0, 2.0]
-                    thresh_store[health_component] = threshold_values
+                # store health values and thresholds for selected components
+                (health_df, thresh_store) = get_health_data(health_group)
 
+                # render charts
                 plotting.plot_health(
                     health_df, contrib_df, thresh_store, datetime_chunk
                 )
@@ -307,10 +267,8 @@ def update_main_panel():
 
             # if features are present, load them into dataframe
             if feature_names.size > 0 and feature_chunk.size > 0:
-                # feature_chunk = feat_dset[chunk_begin_idx:chunk_end_idx]
                 feature_df = pd.DataFrame(feature_chunk, columns=feature_names)
                 feature_df.insert(0, column="Timestamp", value=datetime_chunk)
-                # feature_df.set_index("Timestamp", drop=False, inplace=True)
             # otherwise init empty dataframe
             else:
                 feature_df = pd.DataFrame()
@@ -323,8 +281,10 @@ def update_main_panel():
                     # render plot controls
                     render_feature_controls(options=list(feature_df.columns))
 
+                    # render charts
                     plotting.plot_features(feature_df)
                 with subtab_table:
+                    # render feature table
                     plotting.display_feature_table(feature_df)
             else:
                 st.warning("No features detected.", icon="⚠️")
@@ -355,6 +315,7 @@ def update_main_panel():
                     record_options=list(record_names),
                     var_options=rawdata_var_names,
                 )
+
                 # get indices for record names
                 record_indices_in_file: list[int] = get_record_indices(record_names)
 
@@ -362,7 +323,9 @@ def update_main_panel():
                 selected_record_names: list[str] = st.session_state["rawdata_records"]
                 yvar_labels: list[str] = st.session_state["rawdata_y"]
 
-                # hax
+                # set up params for chart generation
+                # outer decides the number of subplots,
+                # inner decides the number of traces in a subplot
                 chartby = st.session_state["rawdata_chartby"]
                 if chartby == "Variable":
                     outer_looper = yvar_labels
@@ -380,6 +343,7 @@ def update_main_panel():
                     st.error("Well this is unexpected...", icon="🚨")
                     st.stop()
 
+                # render charts
                 plotting.plot_rawdata(
                     rawdata_group,
                     outer_looper,
@@ -466,3 +430,67 @@ def get_group_members(group: h5py.Group) -> list[str]:
 
 def get_obj_attribute(obj: h5py.Dataset | h5py.Group, attr_name) -> list:
     return obj.attrs.get(attr_name, None)
+
+
+# @st.experimental_memo
+def get_contribution_data(
+    _health_group, health_component_names
+) -> tuple[pd.DataFrame, list]:
+    # init dataframe for contributions
+    health_contrib_labels = []
+    contrib_df = pd.DataFrame()
+    # loop over health components present in selected file
+    for health_component in health_component_names:
+        # check if this component has contributions present
+        if "contributions" in _health_group[health_component].keys():
+            # get contribution labels from file
+            component_contrib_labels = list(
+                get_obj_attribute(
+                    _health_group[health_component]["contributions"],
+                    "names",
+                )
+            )
+            # hack that adds component name to contribution label
+            component_contrib_labels = [
+                f"{health_component}|{c}" for c in component_contrib_labels
+            ]
+            health_contrib_labels.extend(component_contrib_labels)
+
+            # get contribution data for this component
+            contrib_chunk = _health_group[health_component]["contributions"][
+                st.session_state["chunk_begin_idx"] : st.session_state["chunk_end_idx"]
+            ]
+            contrib_chunk_df = pd.DataFrame(
+                contrib_chunk,
+                columns=health_contrib_labels,
+            )
+            # add contributions to the dataframe
+            contrib_df = pd.concat([contrib_df, contrib_chunk_df], axis=1)
+
+    return (contrib_df, health_contrib_labels)
+
+
+# @st.experimental_memo
+def get_health_data(_health_group) -> tuple[pd.DataFrame, list]:
+    # init dataframe for health values
+    health_df = pd.DataFrame()
+    thresh_store = {}
+    # loop over selected health components
+    selected_health_components = st.session_state["health_components"]
+    for health_component in selected_health_components:
+        # store health values
+        health_df[health_component] = _health_group[health_component]["health_values"][
+            st.session_state["chunk_begin_idx"] : st.session_state["chunk_end_idx"]
+        ]
+        # store health thresholds
+        threshold_values = get_obj_attribute(
+            _health_group[health_component], "thresholds"
+        )
+        # store with default values in case they are missing
+        if threshold_values is not None:
+            threshold_values = list(threshold_values)
+        else:
+            threshold_values = [1.0, 2.0]
+        thresh_store[health_component] = threshold_values
+
+    return (health_df, thresh_store)
