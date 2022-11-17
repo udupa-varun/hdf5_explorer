@@ -240,9 +240,11 @@ def update_main_panel():
                 contrib_df = pd.DataFrame()
                 # loop over health components present in selected file
                 for health_component in health_component_names:
+                    # check if this component has contributions present
                     if "contributions" in health_group[health_component].keys():
+                        # get contribution labels from file
                         component_contribs = list(
-                            get_dset_attribute(
+                            get_obj_attribute(
                                 health_group[health_component]["contributions"],
                                 "names",
                             )
@@ -271,14 +273,28 @@ def update_main_panel():
 
                 # init dataframe for health values
                 health_df = pd.DataFrame()
+                thresh_store = {}
                 # loop over selected health components
                 selected_health_components = st.session_state["health_components"]
                 for health_component in selected_health_components:
+                    # store health values
                     health_df[health_component] = health_group[health_component][
                         "health_values"
                     ][chunk_begin_idx:chunk_end_idx]
+                    # store health thresholds
+                    threshold_values = get_obj_attribute(
+                        health_group[health_component], "thresholds"
+                    )
+                    # store with default values in case they are missing
+                    if threshold_values is not None:
+                        threshold_values = list(threshold_values)
+                    else:
+                        threshold_values = [1.0, 2.0]
+                    thresh_store[health_component] = threshold_values
 
-                plotting.plot_health(health_df, contrib_df, datetime_chunk)
+                plotting.plot_health(
+                    health_df, contrib_df, thresh_store, datetime_chunk
+                )
             else:
                 st.warning("No health components detected.", icon="⚠️")
 
@@ -286,7 +302,7 @@ def update_main_panel():
         with tab_features:
             # prepare dataframe based on configured chunk
             feat_dset: h5py.Dataset = file_obj[task]["features"]
-            feature_names: np.ndarray = get_dset_attribute(feat_dset, "names")
+            feature_names: np.ndarray = get_obj_attribute(feat_dset, "names")
             feature_chunk: np.ndarray = feat_dset[chunk_begin_idx:chunk_end_idx]
 
             # if features are present, load them into dataframe
@@ -410,7 +426,7 @@ def get_metadata_chunk(meta_dset: h5py.Dataset) -> pd.DataFrame:
     # create dataframe for display
     meta_df = pd.DataFrame(
         meta_formatted,
-        columns=get_dset_attribute(meta_dset, "names"),
+        columns=get_obj_attribute(meta_dset, "names"),
     )
     return meta_df
 
@@ -448,5 +464,5 @@ def get_group_members(group: h5py.Group) -> list[str]:
     return list(group.keys())
 
 
-def get_dset_attribute(dset: h5py.Dataset, attr_name) -> list[str]:
-    return dset.attrs.get(attr_name, None)
+def get_obj_attribute(obj: h5py.Dataset | h5py.Group, attr_name) -> list:
+    return obj.attrs.get(attr_name, None)

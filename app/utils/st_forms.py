@@ -127,30 +127,8 @@ def render_health_controls(options: list[str], contrib_options: list[str]):
                 index=1,
                 key="health_charttype",
             )
-        (
-            col_separate,
-            col_warn_val,
-            col_alarm_val,
-            _,
-        ) = st.columns([2, 2, 2, 4], gap="medium")
-        with col_warn_val:
-            st.number_input(
-                label="Warning Threshold",
-                min_value=0.0,
-                # max_value=1.0,
-                value=1.0,
-                step=0.5,
-                key="health_warn_val",
-            )
-        with col_alarm_val:
-            st.number_input(
-                label="Alarm Threshold",
-                min_value=0.0,
-                # max_value=2.0,
-                value=2.0,
-                step=0.5,
-                key="health_alarm_val",
-            )
+        (col_separate, _) = st.columns([2, 8], gap="medium")
+
         with col_separate:
             st.checkbox(label="Plot in separate charts", key="separate_health_charts")
             st.form_submit_button("Plot Data")
