@@ -105,3 +105,27 @@ def get_closest_index_after_value(dset: h5py.Dataset, val) -> int | None:
             res = idx_found
 
     return res
+
+
+def get_group_members(group: h5py.Group) -> list[str]:
+    """gets the list of children under the given h5py group.
+
+    :param group: group to search within.
+    :type group: h5py.Group
+    :return: list of discovered children. These could be groups or datasets.
+    :rtype: list[str]
+    """
+    return list(group.keys())
+
+
+def get_obj_attribute(obj: h5py.Dataset | h5py.Group, attr_name: str):
+    """gets the specified attribute's value for the given h5py object.
+
+    :param obj: h5py object to check.
+    :type obj: h5py.Dataset | h5py.Group
+    :param attr_name: attribute label
+    :type attr_name: str
+    :return: attribute value(s).
+    :rtype: Any | None
+    """
+    return obj.attrs.get(attr_name, None)

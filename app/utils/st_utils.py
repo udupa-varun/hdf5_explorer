@@ -233,7 +233,7 @@ def update_main_panel():
         with tab_health:
             # set up reference to task health
             health_group: h5py.Group = file_obj[task]["health"]
-            health_component_names = get_group_members(health_group)
+            health_component_names = h5_utils.get_group_members(health_group)
 
             # only proceed if health components are present
             if health_component_names:
@@ -262,7 +262,7 @@ def update_main_panel():
         with tab_features:
             # prepare dataframe based on configured chunk
             feat_dset: h5py.Dataset = file_obj[task]["features"]
-            feature_names: np.ndarray = get_obj_attribute(feat_dset, "names")
+            feature_names: np.ndarray = h5_utils.get_obj_attribute(feat_dset, "names")
             feature_chunk: np.ndarray = feat_dset[chunk_begin_idx:chunk_end_idx]
 
             # if features are present, load them into dataframe
@@ -293,7 +293,7 @@ def update_main_panel():
         with tab_rawdata:
             # prepare variable and record labels
             rawdata_group: h5py.Group = file_obj[task]["raw_data"]
-            rawdata_var_names = get_group_members(rawdata_group)
+            rawdata_var_names = h5_utils.get_group_members(rawdata_group)
             record_names: np.ndarray = meta_df["record_name"]
 
             # check if raw data variables are available
@@ -390,7 +390,7 @@ def get_metadata_chunk(meta_dset: h5py.Dataset) -> pd.DataFrame:
     # create dataframe for display
     meta_df = pd.DataFrame(
         meta_formatted,
-        columns=get_obj_attribute(meta_dset, "names"),
+        columns=h5_utils.get_obj_attribute(meta_dset, "names"),
     )
     return meta_df
 
@@ -424,18 +424,19 @@ def get_record_indices(record_names: list[str]) -> list[int]:
     return record_indices_in_file
 
 
-def get_group_members(group: h5py.Group) -> list[str]:
-    return list(group.keys())
-
-
-def get_obj_attribute(obj: h5py.Dataset | h5py.Group, attr_name) -> list:
-    return obj.attrs.get(attr_name, None)
-
-
-# @st.experimental_memo
 def get_contribution_data(
     _health_group, health_component_names
 ) -> tuple[pd.DataFrame, list]:
+    """gets contribution data and labels from file for specified health components.
+    Contribution labels are modified to indicate the health component they belong to.
+
+    :param _health_group: health group for a given task
+    :type _health_group: h5py.Group
+    :param health_component_names: list of health component labels
+    :type health_component_names: list[str]
+    :return: contribution data and labels
+    :rtype: tuple[pd.DataFrame, list]
+    """
     # init dataframe for contributions
     health_contrib_labels = []
     contrib_df = pd.DataFrame()
@@ -445,7 +446,7 @@ def get_contribution_data(
         if "contributions" in _health_group[health_component].keys():
             # get contribution labels from file
             component_contrib_labels = list(
-                get_obj_attribute(
+                h5_utils.get_obj_attribute(
                     _health_group[health_component]["contributions"],
                     "names",
                 )
@@ -470,8 +471,15 @@ def get_contribution_data(
     return (contrib_df, health_contrib_labels)
 
 
-# @st.experimental_memo
 def get_health_data(_health_group) -> tuple[pd.DataFrame, list]:
+    """gets health values and threshold values for specified health group.
+    The health components chosen are the ones present in the session state.
+
+    :param _health_group: health group for a given task
+    :type _health_group: h5py.Group
+    :return: health values and thresholds
+    :rtype: tuple[pd.DataFrame, list]
+    """
     # init dataframe for health values
     health_df = pd.DataFrame()
     thresh_store = {}
@@ -483,13 +491,15 @@ def get_health_data(_health_group) -> tuple[pd.DataFrame, list]:
             st.session_state["chunk_begin_idx"] : st.session_state["chunk_end_idx"]
         ]
         # store health thresholds
-        threshold_values = get_obj_attribute(
+        threshold_values = h5_utils.get_obj_attribute(
             _health_group[health_component], "thresholds"
         )
-        # store with default values in case they are missing
+        # pull out the warning and alarm threshold values, if available
         if threshold_values is not None:
-            threshold_values = list(threshold_values)
+            threshold_values = list(threshold_values)[1:3]
+        # otherwise, store with default values
         else:
+            # TODO: use defaults from environment vars?
             threshold_values = [1.0, 2.0]
         thresh_store[health_component] = threshold_values
 

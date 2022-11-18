@@ -173,6 +173,8 @@ def plot_health(
     :type health_df: pd.DataFrame
     :param contrib_df: dataframe with contribution values.
     :type contrib_df: pd.DataFrame
+    :param thresh_store: threshold values for health components.
+    :type thresh_store: dict[str, list]
     :param datetime_chunk: array of record timestamps
     :type datetime_chunk: np.ndarray
     """
@@ -196,6 +198,8 @@ def plot_health_single(
     :type health_df: pd.DataFrame
     :param contrib_df: dataframe with contribution values.
     :type contrib_df: pd.DataFrame
+    :param thresh_store: threshold values for health components.
+    :type thresh_store: dict[str, list]
     :param datetime_chunk: array of record timestamps
     :type datetime_chunk: np.ndarray
     """
@@ -248,7 +252,7 @@ def plot_health_single(
     # specific updates to figure
     # only plot thresholds in this mode when a single component is selected
     if len(health_df.columns) == 1:
-        threshold_values = thresh_store[component][1:3]
+        threshold_values = thresh_store[component]
         fig = plot_threshold_lines(
             fig, threshold_values, max_health_val=max_health_val, row=1
         )
@@ -281,6 +285,8 @@ def plot_health_separate(
     :type health_df: pd.DataFrame
     :param contrib_df: dataframe with contribution values.
     :type contrib_df: pd.DataFrame
+    :param thresh_store: threshold values for health components.
+    :type thresh_store: dict[str, list]
     :param datetime_chunk: array of record timestamps
     :type datetime_chunk: np.ndarray
     """
@@ -330,7 +336,7 @@ def plot_health_separate(
         fig = update_figure(fig)
 
         # specific updates to figure
-        threshold_values = thresh_store[component][1:3]
+        threshold_values = thresh_store[component]
         fig = plot_threshold_lines(
             fig, threshold_values, max_health_val=max(health_df[component]), row=1
         )
