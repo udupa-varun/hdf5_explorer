@@ -116,7 +116,8 @@ def handle_marker_safety(fig: go.Figure) -> go.Figure:
         # so override chart type with a translucent line plot
         # TODO: remove this warning? can get annoying for multiple figures
         st.warning(
-            "Too many data points! Forcing a line chart and disabling hover labels."
+            "Too many data points! Forcing a line chart and disabling hover labels.",
+            icon="⚠️",
         )
         fig.update_traces(
             mode="lines",
@@ -162,7 +163,10 @@ def get_data_point_count(fig: go.Figure) -> int:
 
 
 def plot_health(
-    health_df: pd.DataFrame, contrib_df: pd.DataFrame, datetime_chunk: np.ndarray
+    health_df: pd.DataFrame,
+    contrib_df: pd.DataFrame,
+    thresh_store: dict[str, list],
+    datetime_chunk: np.ndarray,
 ):
     """Plots one or more charts for the health tab.
 
@@ -170,19 +174,24 @@ def plot_health(
     :type health_df: pd.DataFrame
     :param contrib_df: dataframe with contribution values.
     :type contrib_df: pd.DataFrame
+    :param thresh_store: threshold values for health components.
+    :type thresh_store: dict[str, list]
     :param datetime_chunk: array of record timestamps
     :type datetime_chunk: np.ndarray
     """
     separate_charts = st.session_state["separate_health_charts"]
 
     if separate_charts:
-        plot_health_separate(health_df, contrib_df, datetime_chunk)
+        plot_health_separate(health_df, contrib_df, thresh_store, datetime_chunk)
     else:
-        plot_health_single(health_df, contrib_df, datetime_chunk)
+        plot_health_single(health_df, contrib_df, thresh_store, datetime_chunk)
 
 
 def plot_health_single(
-    health_df: pd.DataFrame, contrib_df: pd.DataFrame, datetime_chunk: np.ndarray
+    health_df: pd.DataFrame,
+    contrib_df: pd.DataFrame,
+    thresh_store: dict[str, list],
+    datetime_chunk: np.ndarray,
 ):
     """Plots a single health chart with all the selected health components.
 
@@ -190,6 +199,8 @@ def plot_health_single(
     :type health_df: pd.DataFrame
     :param contrib_df: dataframe with contribution values.
     :type contrib_df: pd.DataFrame
+    :param thresh_store: threshold values for health components.
+    :type thresh_store: dict[str, list]
     :param datetime_chunk: array of record timestamps
     :type datetime_chunk: np.ndarray
     """
@@ -211,7 +222,7 @@ def plot_health_single(
             x=datetime_chunk,
             y=health_df[component],
             name=component,
-            mode="lines",
+            mode=chart_types[st.session_state["health_charttype"]],
             # line=dict(color=PLOTLY_COLORS[h_idx]),
         )
         # add trace to top subplot
@@ -231,15 +242,29 @@ def plot_health_single(
             x=datetime_chunk,
             y=contrib_df[contrib],
             name=contrib,
-            mode="lines",
+            mode=chart_types[st.session_state["health_charttype"]],
             # line=dict(color=PLOTLY_COLORS[c_idx]),
         )
         # add trace to bottom subplot
         fig.add_trace(c_trace, row=2, col=1)
     # common updates to figure
     fig = update_figure(fig)
-    fig = plot_threshold_lines(fig, max_health_val=max_health_val, row=1)
+
     # specific updates to figure
+    # if multiple components are selected, inform user how this is being handled
+    if len(health_df.columns) > 1:
+        st.info(
+            """Thresholds shown belong to the first selected component.
+            To change this, either plot the components separately
+            or change the order in which they are selected.
+            """,
+            icon="ℹ️",
+        )
+    # only plot thresholds for the first selected component
+    threshold_values = thresh_store[health_df.columns[0]]
+    fig = plot_threshold_lines(
+        fig, threshold_values, max_health_val=max_health_val, row=1
+    )
     fig.update_layout(
         title_x=0.5,
         title_text="Multiple Components",
@@ -258,7 +283,10 @@ def plot_health_single(
 
 
 def plot_health_separate(
-    health_df: pd.DataFrame, contrib_df: pd.DataFrame, datetime_chunk: np.ndarray
+    health_df: pd.DataFrame,
+    contrib_df: pd.DataFrame,
+    thresh_store: dict[str, list],
+    datetime_chunk: np.ndarray,
 ):
     """Plots multiple health charts, one for each selected health component.
 
@@ -266,6 +294,8 @@ def plot_health_separate(
     :type health_df: pd.DataFrame
     :param contrib_df: dataframe with contribution values.
     :type contrib_df: pd.DataFrame
+    :param thresh_store: threshold values for health components.
+    :type thresh_store: dict[str, list]
     :param datetime_chunk: array of record timestamps
     :type datetime_chunk: np.ndarray
     """
@@ -284,7 +314,7 @@ def plot_health_separate(
             x=datetime_chunk,
             y=health_df[component],
             name=component,
-            mode="lines",
+            mode=chart_types[st.session_state["health_charttype"]],
             # line=dict(color=PLOTLY_COLORS[h_idx]),
         )
         # add trace to top subplot
@@ -303,7 +333,7 @@ def plot_health_separate(
                 x=datetime_chunk,
                 y=contrib_df[contrib],
                 name=contrib,
-                mode="lines",
+                mode=chart_types[st.session_state["health_charttype"]],
                 # line=dict(color=PLOTLY_COLORS[c_idx]),
             )
             # add trace to bottom subplot
@@ -315,7 +345,10 @@ def plot_health_separate(
         fig = update_figure(fig)
 
         # specific updates to figure
-        fig = plot_threshold_lines(fig, max_health_val=max(health_df[component]), row=1)
+        threshold_values = thresh_store[component]
+        fig = plot_threshold_lines(
+            fig, threshold_values, max_health_val=max(health_df[component]), row=1
+        )
 
         fig.update_layout(
             title_x=0.5,
@@ -335,7 +368,10 @@ def plot_health_separate(
 
 
 def plot_threshold_lines(
-    fig: go.Figure, max_health_val: float, row: str = "all"
+    fig: go.Figure,
+    threshold_values: list[float],
+    max_health_val: float,
+    row: str = "all",
 ) -> go.Figure:
     """Plots horizontal lines on the given figure object,
     based on the configured threshold controls.
@@ -350,8 +386,8 @@ def plot_threshold_lines(
 
     row_arg = "all" if row == "all" else 1
     # get threshold values
-    warn_val = st.session_state["health_warn_val"]
-    alarm_val = st.session_state["health_alarm_val"]
+    warn_val = threshold_values[0]
+    alarm_val = threshold_values[1]
     # check if threshold values are playing nice
     if warn_val >= alarm_val:
         st.error("Warning Threshold must be less than Alarm Threshold!", icon="🚨")

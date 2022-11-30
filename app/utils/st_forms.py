@@ -104,7 +104,7 @@ def render_health_controls(options: list[str], contrib_options: list[str]):
     :type options: list[str]
     """
     with st.form("health_form"):
-        (col_component, col_contrib) = st.columns(2)
+        (col_component, col_contrib, col_chart) = st.columns([4, 4, 2])
         with col_component:
             st.multiselect(
                 label="Select Component(s):",
@@ -120,30 +120,15 @@ def render_health_controls(options: list[str], contrib_options: list[str]):
                 key="health_contributions",
                 help="Related components must be selected for contributions to show.",
             )
-        (
-            col_separate,
-            col_warn_val,
-            col_alarm_val,
-            _,
-        ) = st.columns([2, 2, 2, 4], gap="medium")
-        with col_warn_val:
-            st.number_input(
-                label="Warning Threshold",
-                min_value=0.0,
-                # max_value=1.0,
-                value=1.0,
-                step=0.5,
-                key="health_warn_val",
+        with col_chart:
+            st.selectbox(
+                label="Chart Type:",
+                options=list(plotting.chart_types.keys()),
+                index=1,
+                key="health_charttype",
             )
-        with col_alarm_val:
-            st.number_input(
-                label="Alarm Threshold",
-                min_value=0.0,
-                # max_value=2.0,
-                value=2.0,
-                step=0.5,
-                key="health_alarm_val",
-            )
+        (col_separate, _) = st.columns([2, 8], gap="medium")
+
         with col_separate:
             st.checkbox(label="Plot in separate charts", key="separate_health_charts")
             st.form_submit_button("Plot Data")
