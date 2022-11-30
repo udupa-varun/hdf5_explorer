@@ -116,7 +116,8 @@ def handle_marker_safety(fig: go.Figure) -> go.Figure:
         # so override chart type with a translucent line plot
         # TODO: remove this warning? can get annoying for multiple figures
         st.warning(
-            "Too many data points! Forcing a line chart and disabling hover labels."
+            "Too many data points! Forcing a line chart and disabling hover labels.",
+            icon="⚠️",
         )
         fig.update_traces(
             mode="lines",
@@ -250,12 +251,20 @@ def plot_health_single(
     fig = update_figure(fig)
 
     # specific updates to figure
-    # only plot thresholds in this mode when a single component is selected
-    if len(health_df.columns) == 1:
-        threshold_values = thresh_store[component]
-        fig = plot_threshold_lines(
-            fig, threshold_values, max_health_val=max_health_val, row=1
+    # if multiple components are selected, inform user how this is being handled
+    if len(health_df.columns) > 1:
+        st.info(
+            """Thresholds shown belong to the first selected component.
+            To change this, either plot the components separately
+            or change the order in which they are selected.
+            """,
+            icon="ℹ️",
         )
+    # only plot thresholds for the first selected component
+    threshold_values = thresh_store[health_df.columns[0]]
+    fig = plot_threshold_lines(
+        fig, threshold_values, max_health_val=max_health_val, row=1
+    )
     fig.update_layout(
         title_x=0.5,
         title_text="Multiple Components",
