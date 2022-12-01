@@ -237,15 +237,13 @@ def update_main_panel():
 
             # only proceed if health components are present
             if health_component_names:
-                # store contribution data and labels
-                (contrib_df, health_contrib_labels) = get_contribution_data(
-                    health_group, health_component_names
-                )
+                # store contribution data
+                contrib_df = get_contribution_data(health_group, health_component_names)
 
                 # render plot controls
                 render_health_controls(
                     options=health_component_names,
-                    contrib_options=health_contrib_labels,
+                    contrib_options=list(contrib_df.columns),
                 )
 
                 # store health values and thresholds for selected components
@@ -424,21 +422,18 @@ def get_record_indices(record_names: list[str]) -> list[int]:
     return record_indices_in_file
 
 
-def get_contribution_data(
-    _health_group, health_component_names
-) -> tuple[pd.DataFrame, list]:
-    """gets contribution data and labels from file for specified health components.
+def get_contribution_data(_health_group, health_component_names) -> pd.DataFrame:
+    """gets contribution data from file for specified health components.
     Contribution labels are modified to indicate the health component they belong to.
 
     :param _health_group: health group for a given task
     :type _health_group: h5py.Group
     :param health_component_names: list of health component labels
     :type health_component_names: list[str]
-    :return: contribution data and labels
-    :rtype: tuple[pd.DataFrame, list]
+    :return: contribution data
+    :rtype: pd.DataFrame
     """
     # init dataframe for contributions
-    health_contrib_labels = []
     contrib_df = pd.DataFrame()
     # loop over health components present in selected file
     for health_component in health_component_names:
@@ -455,7 +450,6 @@ def get_contribution_data(
             component_contrib_labels = [
                 f"{health_component}|{c}" for c in component_contrib_labels
             ]
-            health_contrib_labels.extend(component_contrib_labels)
 
             # get contribution data for this component
             contrib_chunk = _health_group[health_component]["contributions"][
@@ -463,12 +457,11 @@ def get_contribution_data(
             ]
             contrib_chunk_df = pd.DataFrame(
                 contrib_chunk,
-                columns=health_contrib_labels,
+                columns=component_contrib_labels,
             )
             # add contributions to the dataframe
             contrib_df = pd.concat([contrib_df, contrib_chunk_df], axis=1)
-
-    return (contrib_df, health_contrib_labels)
+    return contrib_df
 
 
 def get_health_data(_health_group) -> tuple[pd.DataFrame, list]:
