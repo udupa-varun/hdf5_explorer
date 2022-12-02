@@ -17,15 +17,16 @@ PLOTLY_COLORS = plotly.colors.qualitative.Plotly
 
 # max number of markers per chart
 # if exceeded, figure will force line charts
-MAX_MARKERS_PER_FIGURE = int(1e4)
+MAX_MARKERS_PER_FIGURE = int(1e6)
 
 # default colors for health thresholds
 DEFAULT_WARNING_COLOR = "#FFA500"
 DEFAULT_ALARM_COLOR = "#FF0000"
 
+
 # max number of allowable rows for the features table
 FEAT_TABLE_ROW_LIMIT = int(1e3)
-FEAT_TABLE_HIGHLIGHT_COLOR = "#ff4b4b"
+FEAT_TABLE_HIGHLIGHT_COLOR = "#FF4B4B"
 
 chart_types = {
     "Line": "lines",
@@ -54,7 +55,7 @@ def update_figure(fig: go.Figure) -> go.Figure:
     :rtype: go.Figure
     """
     # hover label precision
-    fig.update_traces(hovertemplate="%{y:.4g}")
+    fig.update_traces(hovertemplate="%{y:.4~g}")
     # title and legend updates
     fig.update_layout(
         title_x=0.5,
@@ -112,27 +113,30 @@ def handle_marker_safety(fig: go.Figure) -> go.Figure:
 
     # get chart type requested
     chart_mode = fig["data"][0]["mode"]
+
+    # set line opacity
+    fig.update_traces(opacity=0.7)
+
     # check if we are "marker-safe"
     if num_data_points > MAX_MARKERS_PER_FIGURE:
         # we are not marker-safe,
         # so override chart type with a translucent line plot
-        # TODO: remove this warning? can get annoying for multiple figures
+        # warning displays once per figure
         display_st_warning(
-            "Too many data points! Forcing a line chart and disabling hover labels.",
+            f"Too many data points ({num_data_points})! Forcing a line chart.",
         )
-        fig.update_traces(
-            mode="lines",
-            opacity=0.3,
-        )
-        # also disable hover labels
-        fig.update_layout(hovermode=False)
+        fig.update_traces(mode="lines")
+        # # also disable hover labels
+        # fig.update_layout(hovermode=False)
     # safe to add marker borders
     elif "markers" in chart_mode:
         fig.update_traces(
+            opacity=0.8,  # override line opacity
             marker=dict(
                 size=10,
-                line=dict(width=1, color="DarkSlateGrey"),
-            )
+                line=dict(width=1.5, color="DarkSlateGrey"),
+                opacity=0.9,  # marker opacity
+            ),
         )
 
     return fig
@@ -214,8 +218,6 @@ def plot_health_single(
         # subplot_titles=["Health Index", "Contributions"],
         # x_title="Timestamp",
     )
-    max_health_val: float = 0.0
-
     # loop over selected health components
     for (h_idx, component) in enumerate(health_df.columns):
         # compute trace
@@ -228,8 +230,6 @@ def plot_health_single(
         )
         # add trace to top subplot
         fig.add_trace(h_trace, row=1, col=1)
-        # store max value
-        max_health_val = max(max_health_val, max(health_df[component]))
 
     selected_contribs = st.session_state["health_contributions"]
     # filter for relevant contributions
@@ -260,11 +260,20 @@ def plot_health_single(
             or change the order in which they are selected.
             """,
         )
+    # get the max value across all health components (for setting ylim)
+    max_health_val: float = np.max(health_df.max())
     # only plot thresholds for the first selected component
     threshold_values = thresh_store[health_df.columns[0]]
     fig = plot_threshold_lines(
         fig, threshold_values, max_health_val=max_health_val, row=1
     )
+    # apply Y axis limits
+    ylim = np.max([threshold_values[1], max_health_val]) + 0.5
+    fig.update_yaxes(
+        range=[0, ylim],
+        row=1,
+    )
+    # updates for anything other than axes
     fig.update_layout(
         title_x=0.5,
         title_text="Multiple Components",
@@ -345,11 +354,18 @@ def plot_health_separate(
         fig = update_figure(fig)
 
         # specific updates to figure
+        # get the max value for this health components
+        max_health_val: float = np.max(health_df[component])
+        # plot thresholds for this component
         threshold_values = thresh_store[component]
-        fig = plot_threshold_lines(
-            fig, threshold_values, max_health_val=max(health_df[component]), row=1
+        fig = plot_threshold_lines(fig, threshold_values, max_health_val, row=1)
+        # apply Y axis limits
+        ylim = np.max([threshold_values[1], max_health_val]) + 0.5
+        fig.update_yaxes(
+            range=[0, ylim],
+            row=1,
         )
-
+        # updates for anything other than axes
         fig.update_layout(
             title_x=0.5,
             title_text=component,
@@ -371,20 +387,18 @@ def plot_threshold_lines(
     fig: go.Figure,
     threshold_values: list[float],
     max_health_val: float,
-    row: str = "all",
+    row: int = 1,
 ) -> go.Figure:
     """Plots horizontal lines on the given figure object,
     based on the configured threshold controls.
 
     :param fig: plotly figure object.
     :type fig: go.Figure
-    :param max_health_val: highest health value on figure, barring thresholds.
-    :type max_health_val: float
+    :param row: row index for subplot in figure.
+    :type row: int
     :return: updated figure object
     :rtype: go.Figure
     """
-
-    row_arg = "all" if row == "all" else 1
     # get threshold values
     warn_val = threshold_values[0]
     alarm_val = threshold_values[1]
@@ -392,27 +406,22 @@ def plot_threshold_lines(
     if warn_val >= alarm_val:
         display_st_error("Warning Threshold must be less than Alarm Threshold!")
         st.stop()
-    # compute Y Axis upper limit
-    ylim = max(alarm_val + 0.5, max_health_val)
     # add threshold lines
     fig.add_hline(
         y=warn_val,
-        line_width=4,
-        line_dash="dash",
+        line_width=2,
+        # line_dash="dash",
         line_color=DEFAULT_WARNING_COLOR,
-        row=row_arg,
+        row=row,
+        # opacity=0.6,
     )
     fig.add_hline(
         y=alarm_val,
-        line_width=4,
-        line_dash="dash",
+        line_width=2,
+        # line_dash="dash",
         line_color=DEFAULT_ALARM_COLOR,
-        row=row_arg,
-    )
-    # apply Y axis limits
-    fig.update_yaxes(
-        range=[0, ylim],
-        row=row_arg,
+        row=row,
+        # opacity=0.6,
     )
 
     return fig
