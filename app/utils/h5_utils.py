@@ -52,11 +52,11 @@ def get_tasks(file_obj: h5py.File) -> list[str]:
     return group_names
 
 
-def get_closest_index_before_value(
+def get_closest_index_on_or_after_value(
     dset: h5py.Dataset, search_val: float, chunk_size: int = CHUNK_SIZE
 ) -> int | None:
-    """finds the index with the closest value before
-    the provided search value in an h5py Dataset.
+    """finds the index with the closest value on or after
+    the provided search value in a 1-D h5py Dataset.
     Assumes dataset is sorted ascending.
 
     :param dset: h5py dataset to search inside
@@ -68,8 +68,14 @@ def get_closest_index_before_value(
     :return: matching index value if found, otherwise None
     :rtype: int | None
     """
-    num_chunks = int(np.ceil(dset.shape[0] / chunk_size))
     idx_found = None
+
+    # dataset must be 1-D
+    if dset.ndim > 1:
+        return idx_found
+
+    # loop over the dataset in chunks
+    num_chunks = int(np.ceil(dset.shape[0] / chunk_size))
     for chunk_idx in range(num_chunks):
         chunk_start = chunk_idx * chunk_size
         chunk_stop = min(chunk_start + chunk_size, dset.shape[0])
@@ -77,16 +83,16 @@ def get_closest_index_before_value(
         matches = np.argwhere(dset[chunk_start:chunk_stop] >= search_val)
 
         # exit condition
-        if matches.any():
+        if matches.size > 0:
             idx_found = matches[0][0]
             break
 
     return idx_found
 
 
-def get_closest_index_after_value(dset: h5py.Dataset, val) -> int | None:
-    """finds the index with the closest value after
-    the provided search value in an h5py Dataset.
+def get_closest_index_before_value(dset: h5py.Dataset, search_val) -> int | None:
+    """finds the index with the closest value before
+    the provided search value in a 1-D h5py Dataset.
     Assumes dataset is sorted ascending.
 
     :param dset: h5py dataset to search inside
@@ -97,10 +103,10 @@ def get_closest_index_after_value(dset: h5py.Dataset, val) -> int | None:
     :rtype: int | None
     """
     res = None
-    idx_found = get_closest_index_before_value(dset, val)
-    if idx_found is not None:
-        if idx_found < dset.shape[0]:
-            res = idx_found + 1
+    idx_found = get_closest_index_on_or_after_value(dset, search_val)
+    if idx_found is not None and idx_found > 0:
+        if idx_found > 0:
+            res = idx_found - 1
         else:
             res = idx_found
 

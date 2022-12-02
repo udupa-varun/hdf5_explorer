@@ -7,6 +7,7 @@ import pandas as pd
 import streamlit as st
 
 from . import h5_utils, plotting
+from .st_alerts import display_st_error, display_st_warning
 from .st_forms import (
     render_feature_controls,
     render_health_controls,
@@ -69,7 +70,7 @@ def render_dataset_controls():
 
     # if the directory does not exist, create one
     if not search_path.is_dir():
-        st.error("Directory does not exist.", icon="🚨")
+        display_st_error("Directory does not exist.")
         st.stop()
 
     # get files from directory path
@@ -77,7 +78,7 @@ def render_dataset_controls():
 
     # stop if there are no H5 files in the directory
     if not file_paths:
-        st.warning("No files found.", icon="⚠️")
+        display_st_warning("No files found.")
         st.stop()
 
     # display file names
@@ -92,10 +93,9 @@ def render_dataset_controls():
 
         # file must have groups present
         if not task_names:
-            st.error(
+            display_st_error(
                 "No groups were found in the data file. "
                 "This probably isn't a valid PDX H5 file!",
-                icon="🚨",
             )
             st.stop()
 
@@ -108,10 +108,9 @@ def render_dataset_controls():
         with h5_utils.read_file(selected_file_path) as file_obj:
             # the selected task must have valid task attributes
             if list(file_obj[selected_task].attrs.keys()) != TASK_ATTRS:
-                st.error(
+                display_st_error(
                     "Selected group does not have the expected DAQ Task attributes. "
                     "This probably isn't a valid PDX DAQ task!",
-                    icon="🚨",
                 )
                 st.stop()
 
@@ -153,7 +152,7 @@ def render_dataset_controls():
             )
             st.caption(
                 f"Found {num_records_in_selected_range} "
-                "records in the selected date range."
+                "record(s) in the selected date range."
             )
 
 
@@ -170,10 +169,24 @@ def update_chunk_state():
         # get chunk limits
         ts_begin = st.session_state["datetime_begin"].timestamp()
         ts_end = st.session_state["datetime_end"].timestamp()
-        chunk_end_idx = h5_utils.get_closest_index_after_value(timestamp_dset, ts_end)
-        chunk_begin_idx = h5_utils.get_closest_index_before_value(
-            timestamp_dset, ts_begin
+        # get first record after end date
+        chunk_end_idx = h5_utils.get_closest_index_on_or_after_value(
+            dset=timestamp_dset, search_val=ts_end
         )
+        # get first record after start date
+        chunk_begin_idx = h5_utils.get_closest_index_on_or_after_value(
+            dset=timestamp_dset, search_val=ts_begin
+        )
+
+        # handle edge cases
+        # if end index is 0 (single record present)
+        if chunk_end_idx == 0:
+            chunk_end_idx = 1
+        # if no matches were found
+        # should only encounter this if there are issues with the timestamp data
+        if chunk_end_idx is None or chunk_begin_idx is None:
+            display_st_error("No records were found!")
+            st.stop()
 
         # store chunk info in session
         st.session_state["chunk_begin_idx"] = chunk_begin_idx
@@ -226,7 +239,7 @@ def update_main_panel():
 
         # stop if there are no records in the configured range
         if meta_df.empty:
-            st.error("No records in the selected range!", icon="🚨")
+            display_st_error("No records in the selected range!")
             st.stop()
 
         # Health Tab
@@ -254,7 +267,7 @@ def update_main_panel():
                     health_df, contrib_df, thresh_store, datetime_chunk
                 )
             else:
-                st.warning("No health components detected.", icon="⚠️")
+                display_st_warning("No health components detected.")
 
         # Features Tab
         with tab_features:
@@ -285,7 +298,7 @@ def update_main_panel():
                     # render feature table
                     plotting.display_feature_table(feature_df)
             else:
-                st.warning("No features detected.", icon="⚠️")
+                display_st_warning("No features detected.")
 
         # Raw Data Tab
         with tab_rawdata:
@@ -338,7 +351,7 @@ def update_main_panel():
                     title_labels = selected_record_names
                     chart_by_var: bool = False
                 else:
-                    st.error("Well this is unexpected...", icon="🚨")
+                    display_st_error("Well this is unexpected...")
                     st.stop()
 
                 # render charts
@@ -351,7 +364,7 @@ def update_main_panel():
                     chart_by_var,
                 )
             else:
-                st.warning("No raw data available.", icon="⚠️")
+                display_st_warning("No raw data available.")
 
         # Metadata Tab
         with tab_metadata:

@@ -6,6 +6,8 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
+from .st_alerts import display_st_error, display_st_info, display_st_warning
+
 # ----------------
 # Generic/Common
 # ----------------
@@ -115,9 +117,8 @@ def handle_marker_safety(fig: go.Figure) -> go.Figure:
         # we are not marker-safe,
         # so override chart type with a translucent line plot
         # TODO: remove this warning? can get annoying for multiple figures
-        st.warning(
+        display_st_warning(
             "Too many data points! Forcing a line chart and disabling hover labels.",
-            icon="⚠️",
         )
         fig.update_traces(
             mode="lines",
@@ -253,12 +254,11 @@ def plot_health_single(
     # specific updates to figure
     # if multiple components are selected, inform user how this is being handled
     if len(health_df.columns) > 1:
-        st.info(
+        display_st_info(
             """Thresholds shown belong to the first selected component.
             To change this, either plot the components separately
             or change the order in which they are selected.
             """,
-            icon="ℹ️",
         )
     # only plot thresholds for the first selected component
     threshold_values = thresh_store[health_df.columns[0]]
@@ -390,7 +390,7 @@ def plot_threshold_lines(
     alarm_val = threshold_values[1]
     # check if threshold values are playing nice
     if warn_val >= alarm_val:
-        st.error("Warning Threshold must be less than Alarm Threshold!", icon="🚨")
+        display_st_error("Warning Threshold must be less than Alarm Threshold!")
         st.stop()
     # compute Y Axis upper limit
     ylim = max(alarm_val + 0.5, max_health_val)
@@ -531,9 +531,7 @@ def display_feature_table(df: pd.DataFrame):
     feat_table_data = df
     total_row_count = df.shape[0]
     if total_row_count > FEAT_TABLE_ROW_LIMIT:
-        st.warning(
-            f"Limiting table to the first {FEAT_TABLE_ROW_LIMIT} rows.", icon="⚠️"
-        )
+        display_st_warning(f"Limiting table to the first {FEAT_TABLE_ROW_LIMIT} rows.")
         feat_table_data = df.head(FEAT_TABLE_ROW_LIMIT)
     st.dataframe(
         feat_table_data,

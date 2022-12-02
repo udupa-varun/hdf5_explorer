@@ -127,11 +127,11 @@ def render_health_controls(options: list[str], contrib_options: list[str]):
                 index=1,
                 key="health_charttype",
             )
-        (col_separate, _) = st.columns([2, 8], gap="medium")
 
-        with col_separate:
-            st.checkbox(label="Plot in separate charts", key="separate_health_charts")
-            st.form_submit_button("Plot Data")
+        st.checkbox(
+            label="Plot components in separate charts", key="separate_health_charts"
+        )
+        st.form_submit_button("Plot Data")
         st.write(
             """<style>
         [data-testid="stHorizontalBlock"] {
