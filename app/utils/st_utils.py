@@ -114,23 +114,42 @@ def render_dataset_controls():
                 )
                 st.stop()
 
+            # get timestamp extremities for this task
             timestamp_dset = file_obj[selected_task]["timestamps"]
             ts_min = datetime.fromtimestamp(timestamp_dset[0], tz=timezone.utc)
             ts_max = datetime.fromtimestamp(timestamp_dset[-1], tz=timezone.utc)
+
+            # determine date picker defaults
+            # default end date is the last available date
+            date_end_default = ts_max.date()
+
+            # default start date is the most recent available date between:
+            # 1. 30 days before the last available date (offset by duration)
+            # 2. 1000 records before the last available date (offset by records)
+            # offset by duration
+            date_offset_by_duration = ts_max.date() - timedelta(days=30)
+            # offset by number of records (limited by number of records available)
+            num_records_available = timestamp_dset.shape[0]
+            num_records_to_offset_by = min(num_records_available, 1000)
+            date_offset_by_records = datetime.fromtimestamp(
+                timestamp_dset[-1 * num_records_to_offset_by], tz=timezone.utc
+            ).date()
+            # select the most recent of the two as the default start date
+            date_begin_default = max(date_offset_by_duration, date_offset_by_records)
 
         # set date pickers based on timestamp range from file
         col1, col2 = st.columns(2)
         with col1:
             date_begin = st.date_input(
                 "Start Date:",
-                value=max(ts_max.date() - timedelta(days=30), ts_min.date()),
+                value=date_begin_default,
                 min_value=ts_min.date(),
                 max_value=ts_max.date(),
             )
         with col2:
             date_end = st.date_input(
                 "End Date:",
-                value=ts_max.date(),
+                value=date_end_default,
                 min_value=ts_min.date(),
                 max_value=ts_max.date(),
             )
@@ -171,11 +190,11 @@ def update_chunk_state():
         ts_end = st.session_state["datetime_end"].timestamp()
         # get first record after end date
         chunk_end_idx = h5_utils.get_closest_index_on_or_after_value(
-            dset=timestamp_dset, search_val=ts_end
+            dset=timestamp_dset, search_val=ts_end, pref="after"
         )
         # get first record after start date
         chunk_begin_idx = h5_utils.get_closest_index_on_or_after_value(
-            dset=timestamp_dset, search_val=ts_begin
+            dset=timestamp_dset, search_val=ts_begin, pref="on"
         )
 
         # handle edge cases

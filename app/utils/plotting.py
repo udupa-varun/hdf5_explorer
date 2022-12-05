@@ -55,7 +55,7 @@ def update_figure(fig: go.Figure) -> go.Figure:
     :rtype: go.Figure
     """
     # hover label precision
-    fig.update_traces(hovertemplate="%{y:.4~g}")
+    fig.update_traces(hovertemplate="%{y:.4g}")
     # title and legend updates
     fig.update_layout(
         title_x=0.5,

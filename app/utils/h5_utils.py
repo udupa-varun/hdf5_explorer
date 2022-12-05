@@ -53,7 +53,10 @@ def get_tasks(file_obj: h5py.File) -> list[str]:
 
 
 def get_closest_index_on_or_after_value(
-    dset: h5py.Dataset, search_val: float, chunk_size: int = CHUNK_SIZE
+    dset: h5py.Dataset,
+    search_val: float,
+    chunk_size: int = CHUNK_SIZE,
+    pref: str = "on",
 ) -> int | None:
     """finds the index with the closest value on or after
     the provided search value in a 1-D h5py Dataset.
@@ -65,6 +68,9 @@ def get_closest_index_on_or_after_value(
     :type search_val: float
     :param chunk_size: chunk size that the dataset will be broken into, defaults to 10000.
     :type chunk_size: int, optional
+    :param pref: preference for result to be on or after closest match.
+    Value supplied must be "on" or "after".
+    :type pref: str, optional
     :return: matching index value if found, otherwise None
     :rtype: int | None
     """
@@ -85,6 +91,9 @@ def get_closest_index_on_or_after_value(
         # exit condition
         if matches.size > 0:
             idx_found = matches[0][0]
+            # adjust for preference if possible
+            if pref == "after" and idx_found < dset.shape[0]:
+                idx_found += 1
             break
 
     return idx_found
