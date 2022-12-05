@@ -7,6 +7,7 @@ import pandas as pd
 import streamlit as st
 
 from . import h5_utils, plotting
+from .st_alerts import display_st_error, display_st_warning
 from .st_forms import (
     render_feature_controls,
     render_health_controls,
@@ -69,7 +70,7 @@ def render_dataset_controls():
 
     # if the directory does not exist, create one
     if not search_path.is_dir():
-        st.error("Directory does not exist.", icon="🚨")
+        display_st_error("Directory does not exist.")
         st.stop()
 
     # get files from directory path
@@ -77,7 +78,7 @@ def render_dataset_controls():
 
     # stop if there are no H5 files in the directory
     if not file_paths:
-        st.warning("No files found.", icon="⚠️")
+        display_st_warning("No files found.")
         st.stop()
 
     # display file names
@@ -92,10 +93,9 @@ def render_dataset_controls():
 
         # file must have groups present
         if not task_names:
-            st.error(
+            display_st_error(
                 "No groups were found in the data file. "
                 "This probably isn't a valid PDX H5 file!",
-                icon="🚨",
             )
             st.stop()
 
@@ -108,30 +108,48 @@ def render_dataset_controls():
         with h5_utils.read_file(selected_file_path) as file_obj:
             # the selected task must have valid task attributes
             if list(file_obj[selected_task].attrs.keys()) != TASK_ATTRS:
-                st.error(
+                display_st_error(
                     "Selected group does not have the expected DAQ Task attributes. "
                     "This probably isn't a valid PDX DAQ task!",
-                    icon="🚨",
                 )
                 st.stop()
 
+            # get timestamp extremities for this task
             timestamp_dset = file_obj[selected_task]["timestamps"]
             ts_min = datetime.fromtimestamp(timestamp_dset[0], tz=timezone.utc)
             ts_max = datetime.fromtimestamp(timestamp_dset[-1], tz=timezone.utc)
+
+            # determine date picker defaults
+            # default end date is the last available date
+            date_end_default = ts_max.date()
+
+            # default start date is the most recent available date between:
+            # 1. 30 days before the last available date (offset by duration)
+            # 2. 1000 records before the last available date (offset by records)
+            # offset by duration
+            date_offset_by_duration = ts_max.date() - timedelta(days=30)
+            # offset by number of records (limited by number of records available)
+            num_records_available = timestamp_dset.shape[0]
+            num_records_to_offset_by = min(num_records_available, 1000)
+            date_offset_by_records = datetime.fromtimestamp(
+                timestamp_dset[-1 * num_records_to_offset_by], tz=timezone.utc
+            ).date()
+            # select the most recent of the two as the default start date
+            date_begin_default = max(date_offset_by_duration, date_offset_by_records)
 
         # set date pickers based on timestamp range from file
         col1, col2 = st.columns(2)
         with col1:
             date_begin = st.date_input(
                 "Start Date:",
-                value=max(ts_max.date() - timedelta(days=30), ts_min.date()),
+                value=date_begin_default,
                 min_value=ts_min.date(),
                 max_value=ts_max.date(),
             )
         with col2:
             date_end = st.date_input(
                 "End Date:",
-                value=ts_max.date(),
+                value=date_end_default,
                 min_value=ts_min.date(),
                 max_value=ts_max.date(),
             )
@@ -153,7 +171,7 @@ def render_dataset_controls():
             )
             st.caption(
                 f"Found {num_records_in_selected_range} "
-                "records in the selected date range."
+                "record(s) in the selected date range."
             )
 
 
@@ -170,10 +188,24 @@ def update_chunk_state():
         # get chunk limits
         ts_begin = st.session_state["datetime_begin"].timestamp()
         ts_end = st.session_state["datetime_end"].timestamp()
-        chunk_end_idx = h5_utils.get_closest_index_after_value(timestamp_dset, ts_end)
-        chunk_begin_idx = h5_utils.get_closest_index_before_value(
-            timestamp_dset, ts_begin
+        # get first record after end date
+        chunk_end_idx = h5_utils.get_closest_index_on_or_after_value(
+            dset=timestamp_dset, search_val=ts_end, pref="after"
         )
+        # get first record after start date
+        chunk_begin_idx = h5_utils.get_closest_index_on_or_after_value(
+            dset=timestamp_dset, search_val=ts_begin, pref="on"
+        )
+
+        # handle edge cases
+        # if end index is 0 (single record present)
+        if chunk_end_idx == 0:
+            chunk_end_idx = 1
+        # if no matches were found
+        # should only encounter this if there are issues with the timestamp data
+        if chunk_end_idx is None or chunk_begin_idx is None:
+            display_st_error("No records were found!")
+            st.stop()
 
         # store chunk info in session
         st.session_state["chunk_begin_idx"] = chunk_begin_idx
@@ -226,7 +258,7 @@ def update_main_panel():
 
         # stop if there are no records in the configured range
         if meta_df.empty:
-            st.error("No records in the selected range!", icon="🚨")
+            display_st_error("No records in the selected range!")
             st.stop()
 
         # Health Tab
@@ -237,15 +269,13 @@ def update_main_panel():
 
             # only proceed if health components are present
             if health_component_names:
-                # store contribution data and labels
-                (contrib_df, health_contrib_labels) = get_contribution_data(
-                    health_group, health_component_names
-                )
+                # store contribution data
+                contrib_df = get_contribution_data(health_group, health_component_names)
 
                 # render plot controls
                 render_health_controls(
                     options=health_component_names,
-                    contrib_options=health_contrib_labels,
+                    contrib_options=list(contrib_df.columns),
                 )
 
                 # store health values and thresholds for selected components
@@ -256,7 +286,7 @@ def update_main_panel():
                     health_df, contrib_df, thresh_store, datetime_chunk
                 )
             else:
-                st.warning("No health components detected.", icon="⚠️")
+                display_st_warning("No health components detected.")
 
         # Features Tab
         with tab_features:
@@ -287,7 +317,7 @@ def update_main_panel():
                     # render feature table
                     plotting.display_feature_table(feature_df)
             else:
-                st.warning("No features detected.", icon="⚠️")
+                display_st_warning("No features detected.")
 
         # Raw Data Tab
         with tab_rawdata:
@@ -340,7 +370,7 @@ def update_main_panel():
                     title_labels = selected_record_names
                     chart_by_var: bool = False
                 else:
-                    st.error("Well this is unexpected...", icon="🚨")
+                    display_st_error("Well this is unexpected...")
                     st.stop()
 
                 # render charts
@@ -353,7 +383,7 @@ def update_main_panel():
                     chart_by_var,
                 )
             else:
-                st.warning("No raw data available.", icon="⚠️")
+                display_st_warning("No raw data available.")
 
         # Metadata Tab
         with tab_metadata:
@@ -424,21 +454,18 @@ def get_record_indices(record_names: list[str]) -> list[int]:
     return record_indices_in_file
 
 
-def get_contribution_data(
-    _health_group, health_component_names
-) -> tuple[pd.DataFrame, list]:
-    """gets contribution data and labels from file for specified health components.
+def get_contribution_data(_health_group, health_component_names) -> pd.DataFrame:
+    """gets contribution data from file for specified health components.
     Contribution labels are modified to indicate the health component they belong to.
 
     :param _health_group: health group for a given task
     :type _health_group: h5py.Group
     :param health_component_names: list of health component labels
     :type health_component_names: list[str]
-    :return: contribution data and labels
-    :rtype: tuple[pd.DataFrame, list]
+    :return: contribution data
+    :rtype: pd.DataFrame
     """
     # init dataframe for contributions
-    health_contrib_labels = []
     contrib_df = pd.DataFrame()
     # loop over health components present in selected file
     for health_component in health_component_names:
@@ -455,7 +482,6 @@ def get_contribution_data(
             component_contrib_labels = [
                 f"{health_component}|{c}" for c in component_contrib_labels
             ]
-            health_contrib_labels.extend(component_contrib_labels)
 
             # get contribution data for this component
             contrib_chunk = _health_group[health_component]["contributions"][
@@ -463,12 +489,11 @@ def get_contribution_data(
             ]
             contrib_chunk_df = pd.DataFrame(
                 contrib_chunk,
-                columns=health_contrib_labels,
+                columns=component_contrib_labels,
             )
             # add contributions to the dataframe
             contrib_df = pd.concat([contrib_df, contrib_chunk_df], axis=1)
-
-    return (contrib_df, health_contrib_labels)
+    return contrib_df
 
 
 def get_health_data(_health_group) -> tuple[pd.DataFrame, list]:
