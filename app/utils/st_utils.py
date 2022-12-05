@@ -417,6 +417,9 @@ def get_metadata_chunk(meta_dset: h5py.Dataset) -> pd.DataFrame:
         st.session_state["chunk_begin_idx"] : st.session_state["chunk_end_idx"]
     ]:
         meta_formatted.append(np.array([s.decode() for s in row]))
+    # reverse the order of records metadata (most recent first)
+    # note that this in turn affects the order in which raw data records are shown
+    meta_formatted = meta_formatted[::-1]
     # create dataframe for display
     meta_df = pd.DataFrame(
         meta_formatted,
