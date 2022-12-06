@@ -43,7 +43,9 @@ def render_xy_controls(
     form_prefix: str,
     options: list[str],
     x_idx: int = -1,
-    y_idx: int = 1,
+    x_label: str = "X Axis",
+    y_idx: int | None = 1,
+    y_label: str = "Y Axis",
 ):
     """Renders common form controls like variable and chart type selection.
 
@@ -56,8 +58,8 @@ def render_xy_controls(
     defaults to -1. This is to account for the "Index" option added.
     :type x_idx: int, optional
     :param y_idx: default index to use when populating Y Axis,
-    defaults to 1
-    :type y_idx: int, optional
+    defaults to 1. Can be None to indicate empty selection.
+    :type y_idx: int | None, optional
     """
     col_x, col_y, col_chart = st.columns([4, 4, 2])
     # search for timestamp patterns in variable options
@@ -71,17 +73,17 @@ def render_xy_controls(
 
     with col_x:
         st.selectbox(
-            label="X Axis:",
+            label=f"{x_label}:",
             options=xoptions,
             key=f"{form_prefix}_x",
             index=x_idx + 1,
         )
     with col_y:
         st.multiselect(
-            label="Y Axis:",
+            label=f"{y_label}:",
             options=options,
             key=f"{form_prefix}_y",
-            default=options[y_idx],
+            default=options[y_idx] if y_idx is not None else None,
         )
     with col_chart:
         st.selectbox(
@@ -201,10 +203,18 @@ def render_rawdata_controls(record_options: list[str], var_options: list[str]):
         # set default X as index,
         # set default Y as first available data variable
         render_xy_controls(
-            form_prefix="rawdata",
+            form_prefix="rawdata1",
             options=var_options,
             x_idx=-1,
             y_idx=1 if len(var_options) > 1 else 0,
+        )
+        render_xy_controls(
+            form_prefix="rawdata2",
+            options=var_options,
+            x_idx=-1,
+            y_idx=None,
+            x_label="X Axis 2",
+            y_label="Y Axis 2",
         )
 
         st.form_submit_button("Plot Data")

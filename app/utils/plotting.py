@@ -289,6 +289,7 @@ def plot_health_single(
 
     # render figure in app
     st.plotly_chart(fig, use_container_width=True, config=chart_config)
+    st.markdown("""---""")
 
 
 def plot_health_separate(
@@ -381,6 +382,7 @@ def plot_health_separate(
 
         # render figure in app
         st.plotly_chart(fig, use_container_width=True, config=chart_config)
+        st.markdown("""---""")
 
 
 def plot_threshold_lines(
@@ -483,6 +485,7 @@ def plot_features_single(feature_df: pd.DataFrame):
 
     # render figure in app
     st.plotly_chart(fig, use_container_width=True, config=chart_config)
+    st.markdown("""---""")
 
 
 def plot_features_separate(feature_df: pd.DataFrame):
@@ -528,6 +531,7 @@ def plot_features_separate(feature_df: pd.DataFrame):
 
     # render figure in app
     st.plotly_chart(fig, use_container_width=True, config=chart_config)
+    st.markdown("""---""")
 
 
 def display_feature_table(df: pd.DataFrame):
@@ -554,8 +558,11 @@ def display_feature_table(df: pd.DataFrame):
 # ----------------
 
 
-def plot_rawdata(
+def plot_rawdata_charts(
     rawdata_group: h5py.Group,
+    xvar_label: str,
+    super_title: str,
+    chart_mode: str,
     outer_looper: list[str | int],
     inner_looper: list[int | str],
     trace_labels: list[str],
@@ -569,6 +576,12 @@ def plot_rawdata(
 
     :param rawdata_group: HDF5 Group containing raw data for the configured task.
     :type rawdata_group: h5py.Group
+    :param xvar_label: X Axis variable label
+    :type xvar_label: str
+    :param super_title: title for the raw data block
+    :type super_title: str
+    :param chart_mode: chart type to use for this block
+    :type chart_mode: str
     :param outer_looper: list of Y Axis variables (or record indices).
     Corresponds to the number of charts.
     :type outer_looper: list[str | int]
@@ -584,8 +597,8 @@ def plot_rawdata(
     :param chart_by_var: truth value used to navigate our way through this puzzle.
     :type chart_by_var: bool
     """
-    xvar_label = st.session_state["rawdata_x"]
-    num_rows = len(outer_looper)
+    # generate at least one row
+    num_rows = max(len(outer_looper), 1)
     # init figure
     fig = make_subplots(
         rows=num_rows,
@@ -607,7 +620,7 @@ def plot_rawdata(
                 x=xdata,
                 y=ydata,
                 name=trace_labels[inner_idx],
-                mode=chart_types[st.session_state["rawdata_charttype"]],
+                mode=chart_mode,
                 line=dict(color=PLOTLY_COLORS[inner_idx]),
                 # only show legends for the top subplot because
                 # colors are same across subplots and
@@ -626,7 +639,7 @@ def plot_rawdata(
     # any specific updates to figure
     fig.update_layout(
         title_x=0.5,
-        title_text="Raw Data",
+        title_text=super_title,
         xaxis_hoverformat=".4g",
         height=CHART_HEIGHT * num_rows,
     )
@@ -634,3 +647,63 @@ def plot_rawdata(
 
     # render figure in app
     st.plotly_chart(fig, use_container_width=True, config=chart_config)
+    st.markdown("""---""")
+
+
+def plot_rawdata_block(
+    rawdata_group: h5py.Group,
+    chartby: str,
+    record_indices_in_file: list[int],
+    selected_record_names: list[str],
+    chart_block: int,
+):
+    """Sets up and plots a block of rawdata charts.
+
+    :param rawdata_group: HDF5 Group containing raw data for the configured task.
+    :type rawdata_group: h5py.Group
+    :param chartby: session state data for chart by variable/record
+    :type chartby: str
+    :param record_indices_in_file: Indices for selected records in file.
+    :type record_indices_in_file: list[int]
+    :param selected_record_names: selected record names
+    :type selected_record_names: list[str]
+    :param chart_block: the chart block to plot in (1 for X1,Y1 or 2 for X2,Y2)
+    :type chart_block: int
+    """
+    # set up params for chart generation
+    xvar_label: str = st.session_state[f"rawdata{chart_block}_x"]
+    yvar_labels: list[str] = st.session_state[f"rawdata{chart_block}_y"]
+    chart_mode: str = chart_types[st.session_state[f"rawdata{chart_block}_charttype"]]
+    super_title: str = f"Raw Data Group {chart_block}"
+    # outer decides the number of subplots,
+    # inner decides the number of traces in a subplot
+    if chartby == "Variable":
+        outer_looper = yvar_labels
+        inner_looper = record_indices_in_file
+        trace_labels = selected_record_names
+        title_labels = yvar_labels
+        chart_by_var: bool = True
+    elif chartby == "Record":
+        outer_looper = record_indices_in_file
+        inner_looper = yvar_labels
+        trace_labels = yvar_labels
+        title_labels = selected_record_names
+        chart_by_var: bool = False
+    else:
+        display_st_error(
+            "Unexpected value received from raw data session state! Aborting..."
+        )
+        st.stop()
+
+    # render charts for this block
+    plot_rawdata_charts(
+        rawdata_group,
+        xvar_label,
+        super_title,
+        chart_mode,
+        outer_looper,
+        inner_looper,
+        trace_labels,
+        title_labels,
+        chart_by_var,
+    )

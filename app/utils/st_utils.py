@@ -349,38 +349,25 @@ def update_main_panel():
                 # get indices for record names
                 record_indices_in_file: list[int] = get_record_indices(record_names)
 
-                # set up context for plotting chart(s)
+                # set up context for plotting charts
                 selected_record_names: list[str] = st.session_state["rawdata_records"]
-                yvar_labels: list[str] = st.session_state["rawdata_y"]
-
-                # set up params for chart generation
-                # outer decides the number of subplots,
-                # inner decides the number of traces in a subplot
                 chartby = st.session_state["rawdata_chartby"]
-                if chartby == "Variable":
-                    outer_looper = yvar_labels
-                    inner_looper = record_indices_in_file
-                    trace_labels = selected_record_names
-                    title_labels = yvar_labels
-                    chart_by_var: bool = True
-                elif chartby == "Record":
-                    outer_looper = record_indices_in_file
-                    inner_looper = yvar_labels
-                    trace_labels = yvar_labels
-                    title_labels = selected_record_names
-                    chart_by_var: bool = False
-                else:
-                    display_st_error("Well this is unexpected...")
-                    st.stop()
 
-                # render charts
-                plotting.plot_rawdata(
+                # plot X1, Y1
+                plotting.plot_rawdata_block(
                     rawdata_group,
-                    outer_looper,
-                    inner_looper,
-                    trace_labels,
-                    title_labels,
-                    chart_by_var,
+                    chartby,
+                    record_indices_in_file,
+                    selected_record_names,
+                    chart_block=1,
+                )
+                # plot X2, Y2
+                plotting.plot_rawdata_block(
+                    rawdata_group,
+                    chartby,
+                    record_indices_in_file,
+                    selected_record_names,
+                    chart_block=2,
                 )
             else:
                 display_st_warning("No raw data available.")
@@ -417,6 +404,9 @@ def get_metadata_chunk(meta_dset: h5py.Dataset) -> pd.DataFrame:
         st.session_state["chunk_begin_idx"] : st.session_state["chunk_end_idx"]
     ]:
         meta_formatted.append(np.array([s.decode() for s in row]))
+    # reverse the order of records metadata (most recent first)
+    # note that this in turn affects the order in which raw data records are shown
+    meta_formatted = meta_formatted[::-1]
     # create dataframe for display
     meta_df = pd.DataFrame(
         meta_formatted,
