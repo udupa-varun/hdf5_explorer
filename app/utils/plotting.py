@@ -289,6 +289,7 @@ def plot_health_single(
 
     # render figure in app
     st.plotly_chart(fig, use_container_width=True, config=chart_config)
+    st.markdown("""---""")
 
 
 def plot_health_separate(
@@ -381,6 +382,7 @@ def plot_health_separate(
 
         # render figure in app
         st.plotly_chart(fig, use_container_width=True, config=chart_config)
+        st.markdown("""---""")
 
 
 def plot_threshold_lines(
@@ -483,6 +485,7 @@ def plot_features_single(feature_df: pd.DataFrame):
 
     # render figure in app
     st.plotly_chart(fig, use_container_width=True, config=chart_config)
+    st.markdown("""---""")
 
 
 def plot_features_separate(feature_df: pd.DataFrame):
@@ -528,6 +531,7 @@ def plot_features_separate(feature_df: pd.DataFrame):
 
     # render figure in app
     st.plotly_chart(fig, use_container_width=True, config=chart_config)
+    st.markdown("""---""")
 
 
 def display_feature_table(df: pd.DataFrame):
@@ -643,6 +647,7 @@ def plot_rawdata_charts(
 
     # render figure in app
     st.plotly_chart(fig, use_container_width=True, config=chart_config)
+    st.markdown("""---""")
 
 
 def plot_rawdata_block(
