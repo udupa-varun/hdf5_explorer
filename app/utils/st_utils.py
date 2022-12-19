@@ -486,7 +486,7 @@ def get_contribution_data(_health_group, health_component_names) -> pd.DataFrame
     return contrib_df
 
 
-def get_health_data(_health_group) -> tuple[pd.DataFrame, list]:
+def get_health_data(_health_group) -> tuple[pd.DataFrame, dict]:
     """gets health values and threshold values for specified health group.
     The health components chosen are the ones present in the session state.
 

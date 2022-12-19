@@ -262,15 +262,18 @@ def plot_health_single(
         )
     # get the max value across all health components (for setting ylim)
     max_health_val: float = np.max(health_df.max())
+    min_health_val: float = np.min(health_df.min())
     # only plot thresholds for the first selected component
     threshold_values = thresh_store[health_df.columns[0]]
     fig = plot_threshold_lines(
         fig, threshold_values, max_health_val=max_health_val, row=1
     )
     # apply Y axis limits
-    ylim = np.max([threshold_values[1], max_health_val]) + 0.5
+    (ylim_lower, ylim_upper) = get_health_ylim(
+        min_health_val, max_health_val, threshold_values
+    )
     fig.update_yaxes(
-        range=[0, ylim],
+        range=[ylim_lower, ylim_upper],
         row=1,
     )
     # updates for anything other than axes
@@ -357,13 +360,16 @@ def plot_health_separate(
         # specific updates to figure
         # get the max value for this health components
         max_health_val: float = np.max(health_df[component])
+        min_health_val: float = np.min(health_df[component])
         # plot thresholds for this component
         threshold_values = thresh_store[component]
         fig = plot_threshold_lines(fig, threshold_values, max_health_val, row=1)
         # apply Y axis limits
-        ylim = np.max([threshold_values[1], max_health_val]) + 0.5
+        (ylim_lower, ylim_upper) = get_health_ylim(
+            min_health_val, max_health_val, threshold_values
+        )
         fig.update_yaxes(
-            range=[0, ylim],
+            range=[ylim_lower, ylim_upper],
             row=1,
         )
         # updates for anything other than axes
@@ -427,6 +433,26 @@ def plot_threshold_lines(
     )
 
     return fig
+
+
+def get_health_ylim(
+    min_health_val: float, max_health_val: float, threshold_values: list[str]
+) -> tuple[float]:
+    """determines Y axis limits for the health index plot.
+
+    :param min_health_val: minimum health value being plotted.
+    :type min_health_val: float
+    :param max_health_val: maximum health value being plotted.
+    :type max_health_val: float
+    :param threshold_values: threshold values being plotted.
+    :type threshold_values: list[float]
+    :return: lower and upper Y axis limits.
+    :rtype: tuple[float]
+    """
+    ylim_lower: float = np.min([-0.1, min_health_val])
+    ylim_upper: float = np.max([threshold_values[1], max_health_val]) + 0.5
+
+    return (ylim_lower, ylim_upper)
 
 
 # ----------------
