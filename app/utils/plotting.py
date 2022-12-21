@@ -12,16 +12,16 @@ from .st_alerts import display_st_error, display_st_info, display_st_warning
 # Generic/Common
 # ----------------
 
-CHART_HEIGHT = 450
+CHART_HEIGHT = 400
 PLOTLY_COLORS = plotly.colors.qualitative.Plotly
 
 # max number of markers per chart
 # if exceeded, figure will force line charts
 MAX_MARKERS_PER_FIGURE = int(1e6)
 
-# default colors for health thresholds
-DEFAULT_WARNING_COLOR = "#FFA500"
-DEFAULT_ALARM_COLOR = "#FF0000"
+# colors for health thresholds
+THRESH_WARNING_COLOR = "#FFA500"
+THRESH_ALARM_COLOR = "#FF0000"
 
 
 # max number of allowable rows for the features table
@@ -45,7 +45,7 @@ chart_config = {
 }
 
 
-def update_figure(fig: go.Figure) -> go.Figure:
+def apply_generic_figure_updates(fig: go.Figure) -> go.Figure:
     """Layout updates to be applied to ALL figures generated.
     Any updates specific to a tab do not belong here.
 
@@ -217,6 +217,7 @@ def plot_health_single(
         row_heights=[3, 1],
         # subplot_titles=["Health Index", "Contributions"],
         # x_title="Timestamp",
+        # vertical_spacing=0.4,
     )
     # loop over selected health components
     for (h_idx, component) in enumerate(health_df.columns):
@@ -248,8 +249,9 @@ def plot_health_single(
         )
         # add trace to bottom subplot
         fig.add_trace(c_trace, row=2, col=1)
+
     # common updates to figure
-    fig = update_figure(fig)
+    fig = apply_generic_figure_updates(fig)
 
     # specific updates to figure
     # if multiple components are selected, inform user how this is being handled
@@ -260,35 +262,16 @@ def plot_health_single(
             or change the order in which they are selected.
             """,
         )
+    # set up required params
+    fig_params = {}
+    fig_params["title_text"] = "Multiple Components"
     # get the max value across all health components (for setting ylim)
-    max_health_val: float = np.max(health_df.max())
-    min_health_val: float = np.min(health_df.min())
-    # only plot thresholds for the first selected component
-    threshold_values = thresh_store[health_df.columns[0]]
-    fig = plot_threshold_lines(
-        fig, threshold_values, max_health_val=max_health_val, row=1
-    )
-    # apply Y axis limits
-    (ylim_lower, ylim_upper) = get_health_ylim(
-        min_health_val, max_health_val, threshold_values
-    )
-    fig.update_yaxes(
-        range=[ylim_lower, ylim_upper],
-        row=1,
-    )
-    # updates for anything other than axes
-    fig.update_layout(
-        title_x=0.5,
-        title_text="Multiple Components",
-        showlegend=True,
-        height=int(CHART_HEIGHT * 1.2),
-    )
-    # any axis property overrides
-    fig.update_layout(
-        yaxis_title="Health Index",
-        yaxis2_showgrid=False,  # special case for contrib
-        yaxis2_title="Contributions",
-    )
+    fig_params["max_health_val"]: float = np.max(health_df.max())
+    fig_params["min_health_val"]: float = np.min(health_df.min())
+    # only get thresholds for the first selected component
+    fig_params["threshold_values"] = thresh_store[health_df.columns[0]]
+    # apply updates
+    fig = apply_health_figure_updates(fig, fig_params)
 
     # render figure in app
     st.plotly_chart(fig, use_container_width=True, config=chart_config)
@@ -355,40 +338,86 @@ def plot_health_separate(
         # TODO: if there are no relevant contributions, can the empty subplot be removed?
 
         # common updates to figure
-        fig = update_figure(fig)
+        fig = apply_generic_figure_updates(fig)
 
         # specific updates to figure
+        # set up required params
+        fig_params = {}
+        fig_params["title_text"] = component
         # get the max value for this health components
-        max_health_val: float = np.max(health_df[component])
-        min_health_val: float = np.min(health_df[component])
-        # plot thresholds for this component
-        threshold_values = thresh_store[component]
-        fig = plot_threshold_lines(fig, threshold_values, max_health_val, row=1)
-        # apply Y axis limits
-        (ylim_lower, ylim_upper) = get_health_ylim(
-            min_health_val, max_health_val, threshold_values
-        )
-        fig.update_yaxes(
-            range=[ylim_lower, ylim_upper],
-            row=1,
-        )
-        # updates for anything other than axes
-        fig.update_layout(
-            title_x=0.5,
-            title_text=component,
-            showlegend=True,
-            height=int(CHART_HEIGHT * 1.2),
-        )
-        # any axis property overrides
-        fig.update_layout(
-            yaxis_title="Health Index",
-            yaxis2_showgrid=False,  # special case for contrib
-            yaxis2_title="Contributions",
-        )
+        fig_params["max_health_val"]: float = np.max(health_df[component])
+        fig_params["min_health_val"]: float = np.min(health_df[component])
+        # get thresholds for this component
+        fig_params["threshold_values"] = thresh_store[component]
+        # apply updates
+        fig = apply_health_figure_updates(fig, fig_params)
 
         # render figure in app
         st.plotly_chart(fig, use_container_width=True, config=chart_config)
         st.markdown("""---""")
+
+
+def apply_health_figure_updates(fig: go.Figure, fig_params: dict) -> go.Figure:
+    """Performs health figure updates.
+
+    :param fig: input figure object.
+    :type fig: go.Figure
+    :param fig_params: a collection of parameters to be used when modifying the figure.
+    :type fig_params: dict
+    :return: updated figure object.
+    :rtype: go.Figure
+    """
+    # plot threshold lines on health subplot
+    fig = plot_threshold_lines(
+        fig, fig_params["threshold_values"], fig_params["max_health_val"], row=1
+    )
+
+    # apply Y axis limits, taking thresholds into account
+    (ylim_lower, ylim_upper) = get_health_ylim(
+        fig_params["min_health_val"],
+        fig_params["max_health_val"],
+        fig_params["threshold_values"],
+    )
+    fig.update_yaxes(
+        range=[ylim_lower, ylim_upper],
+        row=1,
+    )
+
+    # updates for anything other than axes
+    fig.update_layout(
+        title_x=0.5,
+        title_text=fig_params["title_text"],
+        showlegend=True,
+        height=int(CHART_HEIGHT * 1.1),
+    )
+    # axis property overrides
+    fig.update_layout(
+        yaxis_title="Health Index",
+        yaxis2_showgrid=False,  # special case for contrib
+        yaxis2_title="Contributions",
+    )
+
+    fig.update_xaxes(
+        rangeslider_visible=False,
+        rangeselector=dict(
+            buttons=list(
+                [
+                    dict(count=7, label="1W", step="day", stepmode="backward"),
+                    dict(count=1, label="1M", step="month", stepmode="backward"),
+                    dict(count=3, label="3M", step="month", stepmode="backward"),
+                    dict(count=1, label="YTD", step="year", stepmode="todate"),
+                    dict(count=1, label="1Y", step="year", stepmode="backward"),
+                    dict(step="all"),
+                ]
+            ),
+            font_color=st.get_option("theme.textColor"),
+            activecolor=st.get_option("theme.primaryColor"),
+            bgcolor=st.get_option("theme.secondaryBackgroundColor"),
+        ),
+        row=1,
+    )
+
+    return fig
 
 
 def plot_threshold_lines(
@@ -419,7 +448,7 @@ def plot_threshold_lines(
         y=warn_val,
         line_width=2,
         # line_dash="dash",
-        line_color=DEFAULT_WARNING_COLOR,
+        line_color=THRESH_WARNING_COLOR,
         row=row,
         # opacity=0.6,
     )
@@ -427,7 +456,7 @@ def plot_threshold_lines(
         y=alarm_val,
         line_width=2,
         # line_dash="dash",
-        line_color=DEFAULT_ALARM_COLOR,
+        line_color=THRESH_ALARM_COLOR,
         row=row,
         # opacity=0.6,
     )
@@ -499,7 +528,7 @@ def plot_features_single(feature_df: pd.DataFrame):
         # add trace to figure
         fig.add_trace(trace)
     # common updates to figure
-    fig = update_figure(fig)
+    fig = apply_generic_figure_updates(fig)
     # any specific updates to figure
     fig.update_layout(
         title_x=0.5,
@@ -545,7 +574,7 @@ def plot_features_separate(feature_df: pd.DataFrame):
         # add trace to subplot
         fig.add_trace(trace, row=row_idx + 1, col=1)
     # common updates to figure
-    fig = update_figure(fig)
+    fig = apply_generic_figure_updates(fig)
     # any specific updates to figure
     fig.update_layout(
         title_x=0.5,
@@ -661,7 +690,7 @@ def plot_rawdata_charts(
             )
 
     # common updates to figure
-    fig = update_figure(fig)
+    fig = apply_generic_figure_updates(fig)
     # any specific updates to figure
     fig.update_layout(
         title_x=0.5,
