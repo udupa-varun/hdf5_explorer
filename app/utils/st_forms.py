@@ -207,6 +207,8 @@ def render_rawdata_controls(record_options: list[str], var_options: list[str]):
             options=var_options,
             x_idx=-1,
             y_idx=1 if len(var_options) > 1 else 0,
+            x_label="X Axis 1",
+            y_label="Y Axis 1",
         )
         render_xy_controls(
             form_prefix="rawdata2",

@@ -12,16 +12,16 @@ from .st_alerts import display_st_error, display_st_info, display_st_warning
 # Generic/Common
 # ----------------
 
-CHART_HEIGHT = 450
+CHART_HEIGHT = 400
 PLOTLY_COLORS = plotly.colors.qualitative.Plotly
 
 # max number of markers per chart
 # if exceeded, figure will force line charts
 MAX_MARKERS_PER_FIGURE = int(1e6)
 
-# default colors for health thresholds
-DEFAULT_WARNING_COLOR = "#FFA500"
-DEFAULT_ALARM_COLOR = "#FF0000"
+# colors for health thresholds
+THRESH_WARNING_COLOR = "#FFA500"
+THRESH_ALARM_COLOR = "#FF0000"
 
 
 # max number of allowable rows for the features table
@@ -388,7 +388,7 @@ def apply_health_figure_updates(fig: go.Figure, fig_params: dict) -> go.Figure:
         title_x=0.5,
         title_text=fig_params["title_text"],
         showlegend=True,
-        # height=int(CHART_HEIGHT * 1.2),
+        height=int(CHART_HEIGHT * 1.1),
     )
     # axis property overrides
     fig.update_layout(
@@ -410,9 +410,9 @@ def apply_health_figure_updates(fig: go.Figure, fig_params: dict) -> go.Figure:
                     dict(step="all"),
                 ]
             ),
-            font_color="#FAFAFA",
-            activecolor="#FF4B4B",
-            bgcolor="#31333F",
+            font_color=st.get_option("theme.textColor"),
+            activecolor=st.get_option("theme.primaryColor"),
+            bgcolor=st.get_option("theme.secondaryBackgroundColor"),
         ),
         row=1,
     )
@@ -448,7 +448,7 @@ def plot_threshold_lines(
         y=warn_val,
         line_width=2,
         # line_dash="dash",
-        line_color=DEFAULT_WARNING_COLOR,
+        line_color=THRESH_WARNING_COLOR,
         row=row,
         # opacity=0.6,
     )
@@ -456,7 +456,7 @@ def plot_threshold_lines(
         y=alarm_val,
         line_width=2,
         # line_dash="dash",
-        line_color=DEFAULT_ALARM_COLOR,
+        line_color=THRESH_ALARM_COLOR,
         row=row,
         # opacity=0.6,
     )
