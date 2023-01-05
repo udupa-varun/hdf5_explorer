@@ -89,6 +89,10 @@ def render_dataset_controls():
         key="file_path_selected",
     )
     if selected_file_path.is_file():
+        # file size in bytes
+        selected_file_size = selected_file_path.stat().st_size
+
+        # browse tasks in file
         task_names = get_task_names(selected_file_path)
 
         # file must have groups present
@@ -173,6 +177,8 @@ def render_dataset_controls():
                 f"Found {num_records_in_selected_range} "
                 "record(s) in the selected date range."
             )
+
+            st.caption(f"File size: {selected_file_size/1e9:.2f} GB")
 
 
 def update_chunk_state():
