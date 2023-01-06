@@ -31,8 +31,6 @@ def main():
 
     # main panel
     with st.container():
-        # st_utils.update_state()
-        # if st.session_state["ready_to_tango"]:
         st_utils.update_main_panel()
 
 
@@ -41,9 +39,7 @@ def get_menu_items() -> dict:
     readme_path = Path(__file__).parents[0].joinpath("about.md").resolve()
     with open(readme_path, "r") as f:
         readme_data = f.read()
-    bug_report_url = (
-        "https://github.com/udupa-varun/hdf5_explorer/issues/new/choose"
-    )
+    bug_report_url = "https://github.com/udupa-varun/hdf5_explorer/issues/new/choose"
 
     menu_items = {
         "Report a Bug": bug_report_url,

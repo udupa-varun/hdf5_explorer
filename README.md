@@ -2,21 +2,21 @@
 A tool to visualize data from HDF5/H5 data files that adhere to the PDX data structure, built using Streamlit.
 
 ## Screenshots
-|                                      |                                       |
-| :----------------------------------: | :-----------------------------------: |
-| ![](./screenshots/health_dark_1.png) | ![](./screenshots/health_light_1.png) |
-|    ![](./screenshots/rawdata.png)    | ![](./screenshots/features_chart.png) |
-|   ![](./screenshots/metadata.png)    | ![](./screenshots/features_table.png) |
+|                                    |                                       |
+| :--------------------------------: | :-----------------------------------: |
+| ![](./screenshots/health_dark.png) |  ![](./screenshots/health_light.png)  |
+|   ![](./screenshots/rawdata.png)   | ![](./screenshots/features_chart.png) |
+|  ![](./screenshots/metadata.png)   | ![](./screenshots/features_table.png) |
 
 
 
 ## Features
-- Data exploration of data tasks for a valid date range within a selected H5 file
+- Data exploration of data tasks for a PDX-compatible H5 file
 - Health Data:
   - Chart health components together or in separate charts
   - View thresholds on charts
 - Feature Data:
-  - Chart feature(s) together or in separate charts
+  - Chart features together or in separate charts
   - View features in tabular form
 - Raw Data:
   - Chart data by record or by data variable
@@ -24,7 +24,7 @@ A tool to visualize data from HDF5/H5 data files that adhere to the PDX data str
 - Offers dark, light and custom themes
 
 ## Installation
-Install dependencies by running the `setup.ps1` script in a PowerShell terminal. This process will take a few minutes.
+Install dependencies by running the `setup.ps1` script in a PowerShell terminal. This process will take a few minutes (requires Python 3.10.x)
 
 ```shell
 ...\hdf5_explorer> .\setup.ps1

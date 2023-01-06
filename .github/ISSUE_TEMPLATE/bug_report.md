@@ -2,7 +2,7 @@
 name: Bug report
 about: Create a report to help us improve
 title: "[BUG]"
-labels: ''
+labels: bug
 assignees: ''
 
 ---
@@ -22,12 +22,6 @@ A clear and concise description of what you expected to happen.
 
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
-
-**Desktop (please complete the following information):**
- - OS: [e.g. Windows]
- - Browser [e.g. chrome, safari]
- - Python version [e.g. 3.10]
-
 
 **Additional context**
 Add any other context about the problem here.

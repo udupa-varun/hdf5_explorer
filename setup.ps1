@@ -51,7 +51,7 @@ Write-Output "Installing required packages inside virtual environment. This coul
 $CMD = "pip install wheel"
 Invoke-Expression $CMD
 # install app requirements
-$CMD = "pip install -r .\app\requirements.txt"
+$CMD = "pip install -r .\requirements.txt"
 Invoke-Expression $CMD
 
 # reset location

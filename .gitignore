@@ -15,3 +15,6 @@ data/
 
 # Jupyter related
 *.ipynb*
+
+# log files
+*.log
