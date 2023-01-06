@@ -12,7 +12,7 @@ from .st_alerts import display_st_error, display_st_info, display_st_warning
 # Generic/Common
 # ----------------
 
-CHART_HEIGHT = 400
+CHART_HEIGHT = 450
 PLOTLY_COLORS = plotly.colors.qualitative.Plotly
 
 # max number of markers per chart
@@ -22,7 +22,6 @@ MAX_MARKERS_PER_FIGURE = int(1e6)
 # colors for health thresholds
 THRESH_WARNING_COLOR = "#FFA500"
 THRESH_ALARM_COLOR = "#FF0000"
-
 
 # max number of allowable rows for the features table
 FEAT_TABLE_ROW_LIMIT = int(1e3)
@@ -63,9 +62,9 @@ def apply_generic_figure_updates(fig: go.Figure) -> go.Figure:
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            xanchor="right",
-            y=1.02,
-            x=1,
+            xanchor="left",
+            y=-0.5,
+            x=0,
         ),
         hovermode="x unified",
     )
@@ -275,6 +274,7 @@ def plot_health_single(
 
     # render figure in app
     st.plotly_chart(fig, use_container_width=True, config=chart_config)
+    # render line separator after figure
     st.markdown("""---""")
 
 
@@ -354,6 +354,7 @@ def plot_health_separate(
 
         # render figure in app
         st.plotly_chart(fig, use_container_width=True, config=chart_config)
+        # render line separator after figure
         st.markdown("""---""")
 
 
@@ -392,6 +393,7 @@ def apply_health_figure_updates(fig: go.Figure, fig_params: dict) -> go.Figure:
     )
     # axis property overrides
     fig.update_layout(
+        xaxis2_title="Timestamp",
         yaxis_title="Health Index",
         yaxis2_showgrid=False,  # special case for contrib
         yaxis2_title="Contributions",
@@ -531,7 +533,7 @@ def plot_features_single(feature_df: pd.DataFrame):
     fig = apply_generic_figure_updates(fig)
     # any specific updates to figure
     fig.update_layout(
-        title_x=0.5,
+        # title_x=0.5,
         title_text="Multiple Features",
         xaxis_title=xvar_label,
         showlegend=True,
@@ -540,6 +542,7 @@ def plot_features_single(feature_df: pd.DataFrame):
 
     # render figure in app
     st.plotly_chart(fig, use_container_width=True, config=chart_config)
+    # render line separator after figure
     st.markdown("""---""")
 
 
@@ -577,7 +580,7 @@ def plot_features_separate(feature_df: pd.DataFrame):
     fig = apply_generic_figure_updates(fig)
     # any specific updates to figure
     fig.update_layout(
-        title_x=0.5,
+        # title_x=0.5,
         title_text="Features",
         showlegend=False,
         height=CHART_HEIGHT * num_rows,
@@ -586,6 +589,7 @@ def plot_features_separate(feature_df: pd.DataFrame):
 
     # render figure in app
     st.plotly_chart(fig, use_container_width=True, config=chart_config)
+    # render line separator after figure
     st.markdown("""---""")
 
 
@@ -680,7 +684,8 @@ def plot_rawdata_charts(
                 # only show legends for the top subplot because
                 # colors are same across subplots and
                 # legend is specific to figure, not subplot
-                showlegend=True if outer_idx == 0 else False,
+                showlegend=True,  # if outer_idx == 0 else False,
+                legendgroup=f"chart{outer_idx}",
             )
             # add trace to figure
             fig.add_trace(
@@ -691,17 +696,23 @@ def plot_rawdata_charts(
 
     # common updates to figure
     fig = apply_generic_figure_updates(fig)
+
     # any specific updates to figure
     fig.update_layout(
-        title_x=0.5,
+        # title_x=0.5,
         title_text=super_title,
         xaxis_hoverformat=".4g",
         height=CHART_HEIGHT * num_rows,
+        legend=dict(
+            y=-0.4 / num_rows,
+            groupclick="toggleitem",
+        ),
     )
     fig.update_xaxes(title=xvar_label)
 
     # render figure in app
     st.plotly_chart(fig, use_container_width=True, config=chart_config)
+    # render line separator after figure
     st.markdown("""---""")
 
 
