@@ -373,7 +373,7 @@ def apply_health_figure_updates(fig: go.Figure, fig_params: dict) -> go.Figure:
         fig, fig_params["threshold_values"], fig_params["max_health_val"], row=1
     )
 
-    # apply Y axis limits, taking thresholds into account
+    # apply Y axis limits for health, taking thresholds into account
     (ylim_lower, ylim_upper) = get_health_ylim(
         fig_params["min_health_val"],
         fig_params["max_health_val"],
@@ -382,6 +382,12 @@ def apply_health_figure_updates(fig: go.Figure, fig_params: dict) -> go.Figure:
     fig.update_yaxes(
         range=[ylim_lower, ylim_upper],
         row=1,
+    )
+
+    # update Y axis limits for contributions
+    fig.update_yaxes(
+        range=[-0.1, 1],
+        row=2,
     )
 
     # updates for anything other than axes
