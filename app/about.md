@@ -1,6 +1,6 @@
-Version 0.2.5
+Version 0.2.6
 
-PDX H5 Explorer is a tool to visualize data from HDF5/H5 data files that adhere to the PDX data structure.
+PDX H5 Explorer is a data exploration tool that reads data from HDF5/H5 data files that adhere to the PDX data structure.
 
 [GitHub Home Page](https://github.com/udupa-varun/hdf5_explorer)
 

@@ -609,8 +609,8 @@ def display_feature_table(df: pd.DataFrame):
     feat_table_data = df
     total_row_count = df.shape[0]
     if total_row_count > FEAT_TABLE_ROW_LIMIT:
-        display_st_warning(f"Limiting table to the first {FEAT_TABLE_ROW_LIMIT} rows.")
-        feat_table_data = df.head(FEAT_TABLE_ROW_LIMIT)
+        display_st_warning(f"Limiting table to the last {FEAT_TABLE_ROW_LIMIT} rows.")
+        feat_table_data = feat_table_data.tail(FEAT_TABLE_ROW_LIMIT)
     st.dataframe(
         feat_table_data,
         use_container_width=True,
