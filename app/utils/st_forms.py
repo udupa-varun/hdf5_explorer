@@ -130,19 +130,21 @@ def render_health_controls(options: list[str], contrib_options: list[str]):
                 key="health_charttype",
             )
 
-        st.checkbox(
-            label="Plot components in separate charts", key="separate_health_charts"
-        )
-        st.form_submit_button("Plot Data")
-        st.write(
-            """<style>
-        [data-testid="stHorizontalBlock"] {
-            align-items: center;
-        }
-        </style>
-        """,
-            unsafe_allow_html=True,
-        )
+        (col_plot, _) = st.columns([2.5, 7.5])
+        with col_plot:
+            st.checkbox(
+                label="Plot components in separate charts", key="separate_health_charts"
+            )
+            st.form_submit_button("Plot Data")
+            st.write(
+                """<style>
+            [data-testid="stHorizontalBlock"] {
+                align-items: center;
+            }r
+            </style>
+            """,
+                unsafe_allow_html=True,
+            )
 
 
 # ----------------
@@ -166,8 +168,10 @@ def render_feature_controls(options: list[str]):
             y_idx=1 if len(options) > 1 else 0,
         )
 
-        st.checkbox(label="Plot in separate charts", key="separate_feat_charts")
-        st.form_submit_button("Plot Data")
+        (col_plot, _) = st.columns([2, 8])
+        with col_plot:
+            st.checkbox(label="Plot in separate charts", key="separate_feat_charts")
+            st.form_submit_button("Plot Data")
 
 
 # ----------------
