@@ -122,11 +122,12 @@ def handle_marker_safety(fig: go.Figure) -> go.Figure:
         # so override chart type with a translucent line plot
         # warning displays once per figure
         display_st_warning(
-            f"Too many data points ({num_data_points})! Forcing a line chart.",
+            f"""Too many data points ({num_data_points})!
+            Forcing a line chart and disabling hover labels.""",
         )
         fig.update_traces(mode="lines")
-        # # also disable hover labels
-        # fig.update_layout(hovermode=False)
+        # also disable hover labels
+        fig.update_layout(hovermode=False)
     # safe to add marker borders
     elif "markers" in chart_mode:
         fig.update_traces(
