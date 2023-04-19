@@ -159,11 +159,15 @@ def render_dataset_controls():
             )
         # store as datetime in session state
         datetime_begin = datetime.combine(
-            date=date_begin, time=datetime.min.time(), tzinfo=timezone.utc
+            date=date_begin,
+            time=datetime.min.time(),
+            tzinfo=ts_min.tzinfo,
         )
         st.session_state["datetime_begin"] = datetime_begin
         datetime_end = datetime.combine(
-            date=date_end, time=datetime.min.time(), tzinfo=timezone.utc
+            date=date_end,
+            time=datetime.max.time(),
+            tzinfo=ts_min.tzinfo,
         )
         st.session_state["datetime_end"] = datetime_end
 
@@ -194,12 +198,13 @@ def update_chunk_state():
         # get chunk limits
         ts_begin = st.session_state["datetime_begin"].timestamp()
         ts_end = st.session_state["datetime_end"].timestamp()
+
         # get first record after end date
-        chunk_end_idx = h5_utils.get_closest_index_on_or_after_value(
-            dset=timestamp_dset, search_val=ts_end, pref="after"
+        chunk_end_idx = h5_utils.get_farthest_index_matching_value(
+            dset=timestamp_dset, search_val=ts_end, pref="before"
         )
         # get first record after start date
-        chunk_begin_idx = h5_utils.get_closest_index_on_or_after_value(
+        chunk_begin_idx = h5_utils.get_closest_index_matching_value(
             dset=timestamp_dset, search_val=ts_begin, pref="on"
         )
 
@@ -517,11 +522,11 @@ def get_health_data(_health_group) -> tuple[pd.DataFrame, dict]:
         )
         # pull out the warning and alarm threshold values, if available
         if threshold_values is not None:
-            threshold_values = list(threshold_values)[1:3]
+            threshold_values = list(threshold_values)[:3]
         # otherwise, store with default values
         else:
             # TODO: use defaults from environment vars?
-            threshold_values = [1.0, 2.0]
+            threshold_values = [0.0, 1.0, 2.0]
         thresh_store[health_component] = threshold_values
 
     return (health_df, thresh_store)
