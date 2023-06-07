@@ -487,6 +487,7 @@ def get_health_ylim(
     min_health_val: float, max_health_val: float, threshold_values: list[str]
 ) -> tuple[float]:
     """determines Y axis limits for the health index plot.
+    Based on the values being plotted and the thresholds.
 
     :param min_health_val: minimum health value being plotted.
     :type min_health_val: float
@@ -497,8 +498,12 @@ def get_health_ylim(
     :return: lower and upper Y axis limits.
     :rtype: tuple[float]
     """
-    ylim_lower: float = np.min([-0.1, min_health_val])
-    ylim_upper: float = np.max([threshold_values[1], max_health_val]) + 0.5
+    # get lower limit
+    ylim_lower: float = np.min([np.min(threshold_values), min_health_val])
+    ylim_lower -= 0.01 * ylim_lower
+    # get upper limit
+    ylim_upper: float = np.max([np.max(threshold_values), max_health_val])
+    ylim_upper += 0.01 * ylim_upper
 
     return (ylim_lower, ylim_upper)
 
