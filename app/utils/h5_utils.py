@@ -52,7 +52,7 @@ def get_tasks(file_obj: h5py.File) -> list[str]:
     return group_names
 
 
-def get_closest_index_on_or_after_value(
+def get_closest_index_matching_value(
     dset: h5py.Dataset,
     search_val: float,
     chunk_size: int = CHUNK_SIZE,
@@ -99,8 +99,13 @@ def get_closest_index_on_or_after_value(
     return idx_found
 
 
-def get_closest_index_before_value(dset: h5py.Dataset, search_val) -> int | None:
-    """finds the index with the closest value before
+def get_farthest_index_matching_value(
+    dset: h5py.Dataset,
+    search_val: float,
+    chunk_size: int = CHUNK_SIZE,
+    pref: str = "on",
+) -> int | None:
+    """finds the index with the closest value on or before
     the provided search value in a 1-D h5py Dataset.
     Assumes dataset is sorted ascending.
 
@@ -108,18 +113,37 @@ def get_closest_index_before_value(dset: h5py.Dataset, search_val) -> int | None
     :type dset: h5py.Dataset
     :param search_val: value to search for in the dataset
     :type search_val: float
+    :param chunk_size: chunk size that the dataset will be broken into, defaults to 10000.
+    :type chunk_size: int, optional
+    :param pref: preference for result to be on or before closest match.
+    Value supplied must be "on" or "before".
+    :type pref: str, optional
     :return: matching index value if found, otherwise None
     :rtype: int | None
     """
-    res = None
-    idx_found = get_closest_index_on_or_after_value(dset, search_val)
-    if idx_found is not None and idx_found > 0:
-        if idx_found > 0:
-            res = idx_found - 1
-        else:
-            res = idx_found
+    idx_found = None
 
-    return res
+    # dataset must be 1-D
+    if dset.ndim > 1:
+        return idx_found
+
+    # loop over the dataset in chunks
+    num_chunks = int(np.ceil(dset.shape[0] / chunk_size))
+    for chunk_idx in range(num_chunks):
+        chunk_stop = dset.shape[0] - (chunk_idx * chunk_size)
+        chunk_start = max(chunk_stop - chunk_size, 0)
+
+        matches = np.argwhere(dset[chunk_start:chunk_stop] <= search_val)
+
+        # exit condition
+        if matches.size > 0:
+            idx_found = matches[-1][0]
+            # adjust for preference if possible
+            if pref == "before" and idx_found > 1:
+                idx_found -= 1
+            break
+
+    return idx_found
 
 
 def get_group_members(group: h5py.Group) -> list[str]:

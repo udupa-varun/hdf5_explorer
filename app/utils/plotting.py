@@ -20,6 +20,7 @@ PLOTLY_COLORS = plotly.colors.qualitative.Plotly
 MAX_MARKERS_PER_FIGURE = int(1e6)
 
 # colors for health thresholds
+THRESH_HEALTHY_COLOR = "#1A783F"
 THRESH_WARNING_COLOR = "#FFA500"
 THRESH_ALARM_COLOR = "#FF0000"
 
@@ -220,7 +221,7 @@ def plot_health_single(
         # vertical_spacing=0.4,
     )
     # loop over selected health components
-    for (h_idx, component) in enumerate(health_df.columns):
+    for h_idx, component in enumerate(health_df.columns):
         # compute trace
         h_trace = go.Scattergl(
             x=datetime_chunk,
@@ -238,7 +239,7 @@ def plot_health_single(
         c for c in selected_contribs if c.split("|")[0] in health_df.columns
     ]
     # loop over selected health contributions
-    for (c_idx, contrib) in enumerate(relevant_contribs):
+    for c_idx, contrib in enumerate(relevant_contribs):
         # compute trace
         c_trace = go.Scattergl(
             x=datetime_chunk,
@@ -296,7 +297,7 @@ def plot_health_separate(
     :param datetime_chunk: array of record timestamps
     :type datetime_chunk: np.ndarray
     """
-    for (h_idx, component) in enumerate(health_df.columns):
+    for h_idx, component in enumerate(health_df.columns):
         # init figure
         fig = make_subplots(
             rows=2,
@@ -324,7 +325,7 @@ def plot_health_separate(
             c for c in selected_contribs if c.split("|")[0] == component
         ]
         # loop over relevant health contributions
-        for (c_idx, contrib) in enumerate(relevant_contribs):
+        for c_idx, contrib in enumerate(relevant_contribs):
             # compute trace
             c_trace = go.Scattergl(
                 x=datetime_chunk,
@@ -446,13 +447,22 @@ def plot_threshold_lines(
     :rtype: go.Figure
     """
     # get threshold values
-    warn_val = threshold_values[0]
-    alarm_val = threshold_values[1]
+    healthy_val = threshold_values[0]
+    warn_val = threshold_values[1]
+    alarm_val = threshold_values[2]
     # check if threshold values are playing nice
     if warn_val >= alarm_val:
         display_st_error("Warning Threshold must be less than Alarm Threshold!")
         st.stop()
     # add threshold lines
+    fig.add_hline(
+        y=healthy_val,
+        line_width=2,
+        # line_dash="dash",
+        line_color=THRESH_HEALTHY_COLOR,
+        row=row,
+        # opacity=0.6,
+    )
     fig.add_hline(
         y=warn_val,
         line_width=2,
@@ -477,6 +487,7 @@ def get_health_ylim(
     min_health_val: float, max_health_val: float, threshold_values: list[str]
 ) -> tuple[float]:
     """determines Y axis limits for the health index plot.
+    Based on the values being plotted and the thresholds.
 
     :param min_health_val: minimum health value being plotted.
     :type min_health_val: float
@@ -487,8 +498,12 @@ def get_health_ylim(
     :return: lower and upper Y axis limits.
     :rtype: tuple[float]
     """
-    ylim_lower: float = np.min([-0.1, min_health_val])
-    ylim_upper: float = np.max([threshold_values[1], max_health_val]) + 0.5
+    # get lower limit
+    ylim_lower: float = np.min([np.min(threshold_values), min_health_val])
+    ylim_lower -= 0.01 * ylim_lower
+    # get upper limit
+    ylim_upper: float = np.max([np.max(threshold_values), max_health_val])
+    ylim_upper += 0.01 * ylim_upper
 
     return (ylim_lower, ylim_upper)
 
@@ -572,7 +587,7 @@ def plot_features_separate(feature_df: pd.DataFrame):
         subplot_titles=yvar_labels,
     )
     # plot selected features on figure
-    for (row_idx, feat) in enumerate(yvar_labels):
+    for row_idx, feat in enumerate(yvar_labels):
         # compute trace
         trace = go.Scattergl(
             x=feature_df[xvar_label] if xvar_label != "Index" else None,
@@ -673,9 +688,9 @@ def plot_rawdata_charts(
         subplot_titles=title_labels,
     )
     # loop over each chart
-    for (outer_idx, outer_var) in enumerate(outer_looper):
+    for outer_idx, outer_var in enumerate(outer_looper):
         # loop over each trace in chart
-        for (inner_idx, inner_var) in enumerate(inner_looper):
+        for inner_idx, inner_var in enumerate(inner_looper):
             yvar_label = outer_var if chart_by_var else inner_var
             record_idx = inner_var if chart_by_var else outer_var
             xdata = (
